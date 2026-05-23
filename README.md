@@ -1,5 +1,12 @@
 # NutriAI
 
+![React](https://img.shields.io/badge/React-18-111827?style=for-the-badge&logo=react)
+![Vite](https://img.shields.io/badge/Vite-6-111827?style=for-the-badge&logo=vite)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-111827?style=for-the-badge&logo=tailwindcss)
+![Node.js](https://img.shields.io/badge/Node.js-Express-111827?style=for-the-badge&logo=nodedotjs)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-111827?style=for-the-badge&logo=postgresql)
+![Gemini](https://img.shields.io/badge/Gemini-AI-111827?style=for-the-badge&logo=googlegemini)
+
 AI-powered nutrition tracker built as a fullstack portfolio project with food logging, smart calorie goals, Gemini-powered meal analysis, weekly meal planning, and PostgreSQL persistence.
 
 NutriAI helps users track meals, water, weight, calories, proteins, fats, and carbs in one mobile-first dashboard. The app focuses on real product UX: fast food logging, editable AI results, personal goals, shopping lists, and a clean responsive interface.
