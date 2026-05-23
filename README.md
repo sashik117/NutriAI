@@ -1,48 +1,181 @@
 # NutriAI
 
-NutriAI is a React/Vite nutrition tracker with a Node/Express backend and PostgreSQL storage.
+AI-powered nutrition tracker built as a fullstack portfolio project with food logging, smart calorie goals, Gemini-powered meal analysis, weekly meal planning, and PostgreSQL persistence.
 
-## Setup
+NutriAI helps users track meals, water, weight, calories, proteins, fats, and carbs in one mobile-first dashboard. The app focuses on real product UX: fast food logging, editable AI results, personal goals, shopping lists, and a clean responsive interface.
 
-1. Install dependencies:
+![NutriAI dashboard](screenshots/home-page.png)
 
-   ```bash
-   npm install
-   ```
+## ✨ Features
 
-2. Create `.env` from `.env.example` and set your PostgreSQL connection string:
+- 🔐 Authentication flow with user-based data storage
+- 🤖 Gemini AI food analysis from text, voice, images, and plate scanning
+- 🍽️ Food diary with calories, protein, fats, carbs, weight, and editable entries
+- 🧠 Smart goals using user profile data, target weight, activity level, and macro formulas
+- 📅 Interactive daily dashboard with calorie rings, macro progress, and calendar indicators
+- 🥗 AI meal plan generator with structured meals, ingredients, and saved plans
+- 🛒 Shopping list generated from selected meal ingredients, with grouping and checklist logic
+- 💧 Water tracking with daily goal logic and reminder UI
+- 🏆 Gamification, streaks, profile stats, and progress-oriented UI
+- 📱 Mobile-first PWA-style layout with bottom navigation and safe-area support
+- 🗄️ PostgreSQL backend for persistent user data
 
-   ```bash
-   cp .env.example .env
-   ```
+## 🧩 Problem Solved
 
-3. Create the database if it does not exist, then run migrations:
+Most calorie trackers are either too manual or too generic. NutriAI combines AI assistance with editable structured data, so users can scan, search, or describe food naturally while still keeping control over the final numbers.
 
-   ```bash
-   npm run db:migrate
-   ```
+The main goal is to make nutrition tracking feel faster, softer, and more personal: the app remembers the user, calculates their goals, keeps meal history, and helps turn meal plans into a practical shopping list.
 
-4. Start the app:
+## 🛠️ Tech Stack
 
-   ```bash
-   npm run dev
-   ```
+**Frontend**
 
-The frontend runs on `http://localhost:5174`, and the backend runs on `http://localhost:4001`.
+- React
+- Vite
+- Tailwind CSS
+- Framer Motion
+- Radix UI
+- TanStack Query
+- Recharts
+- Lucide React
+- Sonner
 
-## Environment
+**Backend**
 
-- `DATABASE_URL` is required for PostgreSQL.
-- `DATABASE_SCHEMA` is optional and keeps NutriAI tables in a separate schema inside an existing database.
-- `DATABASE_SSL=true` can be used for hosted PostgreSQL providers that require SSL.
-- `GEMINI_API_KEY` is optional but preferred for AI, photo, and audio features. The default model is `gemini-2.5-flash-lite`.
-- `OPENAI_API_KEY` is an optional fallback if Gemini is not configured.
-- If no AI key is set, AI features return fallback data so the app remains usable.
+- Node.js
+- Express
+- Multer
+- REST API
 
-## Useful Scripts
+**Database & AI**
 
-- `npm run client` starts only the Vite frontend.
-- `npm run server` starts only the Express backend.
-- `npm run db:migrate` applies the PostgreSQL schema.
-- `npm run build` builds the frontend.
-- `npm run lint` runs ESLint.
+- PostgreSQL
+- Gemini API
+- OpenAI fallback support
+
+## 📸 Screenshots
+
+### Dashboard
+
+![Dashboard](screenshots/home-page.png)
+
+### AI Meal Plan
+
+![AI meal plan](screenshots/meal-plan.png)
+
+### Mobile View
+
+![Mobile view](screenshots/mobile-view.png)
+
+## 🏗️ Project Structure
+
+```text
+NutriAI/
+|-- public/
+|   |-- manifest.json
+|   `-- sw.js
+|-- screenshots/
+|   |-- home-page.png
+|   |-- meal-plan.png
+|   `-- mobile-view.png
+|-- server/
+|   |-- index.js
+|   |-- migrate.js
+|   `-- db/
+|-- src/
+|   |-- components/
+|   |-- contexts/
+|   |-- lib/
+|   |-- pages/
+|   `-- services/
+|-- .env.example
+|-- README.md
+|-- package.json
+`-- vite.config.js
+```
+
+## 🚀 Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/sashik117/NutriAI.git
+cd NutriAI
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create your environment file:
+
+```bash
+cp .env.example .env
+```
+
+Set the required variables:
+
+```env
+DATABASE_URL=postgres://postgres:password@localhost:5432/nutriai
+DATABASE_SCHEMA=public
+DATABASE_SSL=false
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=optional_openai_fallback_key
+PORT=4001
+```
+
+Run database migrations:
+
+```bash
+npm run db:migrate
+```
+
+Start the fullstack app:
+
+```bash
+npm run dev
+```
+
+Frontend: `http://localhost:5176`  
+Backend: `http://localhost:4001`
+
+## 📜 Available Scripts
+
+```bash
+npm run dev          # start frontend and backend together
+npm run client       # start Vite frontend only
+npm run server       # start Express backend only
+npm run db:migrate   # apply PostgreSQL schema
+npm run build        # create production frontend build
+npm run lint         # run ESLint
+npm run typecheck    # run TypeScript/JS project checks
+```
+
+## 🔐 Environment Notes
+
+- `.env` is ignored by Git and should never be committed.
+- `DATABASE_SCHEMA` can isolate NutriAI tables inside an existing PostgreSQL database.
+- Gemini is the preferred AI provider for image-heavy nutrition features.
+- If AI keys are missing, the app can still return fallback data for local testing.
+
+## 🌐 Live Demo
+
+Deployment link coming soon.
+
+## 🧭 Roadmap
+
+- Production deployment
+- More accurate barcode fallback with AI label reading
+- Native mobile health integrations
+- Advanced progress analytics
+- More polished onboarding and profile personalization
+
+## 👩‍💻 Contact
+
+Created by [@sashik117](https://github.com/sashik117)
+
+- GitHub: [github.com/sashik117](https://github.com/sashik117)
+- Email: add-your-email@example.com
+- Telegram: @your_telegram
