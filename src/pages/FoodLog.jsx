@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera, Coffee, Cookie, Loader2, Moon, Pencil, Search, Send, Sparkles, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -260,6 +261,7 @@ export default function FoodLog() {
   const knownMealKeys = MEAL_ORDER.map((meal) => meal.key);
   const otherSnacks = todayLogs.filter((log) => !knownMealKeys.includes(log.meal_type));
   const hasLogs = groupedLogs.length > 0 || otherSnacks.length > 0;
+  const selectedMeal = ADD_MEAL_OPTIONS.find((meal) => meal.key === mealType) || ADD_MEAL_OPTIONS[0];
 
   return (
     <div className="space-y-4 pt-6">
@@ -273,24 +275,26 @@ export default function FoodLog() {
           <p className="text-sm font-bold">Написати для ШІ</p>
           <p className="text-xs text-muted-foreground">Наприклад: молоко 200 мл і пластівці 50 г</p>
         </div>
-        <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
-          {ADD_MEAL_OPTIONS.map((meal) => {
-            const active = mealType === meal.key;
-            return (
-              <motion.button
-                key={meal.key}
-                type="button"
-                whileTap={{ scale: 0.94 }}
-                onClick={() => setMealType(meal.key)}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
-                  active ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-border bg-background text-muted-foreground'
-                }`}
-              >
-                <span className="mr-1">{meal.emoji}</span>
-                {meal.label}
-              </motion.button>
-            );
-          })}
+        <div className="mb-3">
+          <label className="mb-1.5 block text-xs font-bold text-muted-foreground">Прийом їжі</label>
+          <Select value={mealType} onValueChange={setMealType}>
+            <SelectTrigger className="h-12 rounded-2xl border-primary/20 bg-primary/5 px-4 text-sm font-bold shadow-sm">
+              <SelectValue>
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-lg">{selectedMeal.emoji}</span>
+                  <span>{selectedMeal.label}</span>
+                </span>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="max-h-64 rounded-2xl">
+              {ADD_MEAL_OPTIONS.map((meal) => (
+                <SelectItem key={meal.key} value={meal.key} className="rounded-xl py-3 text-sm font-semibold">
+                  <span className="mr-2">{meal.emoji}</span>
+                  {meal.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-end gap-3">
           <div className="relative flex-1">

@@ -9,9 +9,9 @@
 
 AI-powered nutrition tracker built as a fullstack portfolio project with food logging, smart calorie goals, Gemini-powered meal analysis, weekly meal planning, and PostgreSQL persistence.
 
-NutriAI helps users track meals, water, weight, calories, proteins, fats, and carbs in one mobile-first dashboard. The app focuses on real product UX: fast food logging, editable AI results, personal goals, shopping lists, and a clean responsive interface.
+NutriAI is currently a web application with a mobile-first interface. The next product step is a native mobile app version, so the UI is already designed around phone screens, bottom navigation, touch-friendly controls, and PWA-style behavior.
 
-![NutriAI dashboard](screenshots/home-page.png)
+![NutriAI mobile dashboard](screenshots/mobile-dashboard.png)
 
 ## ✨ Features
 
@@ -24,7 +24,7 @@ NutriAI helps users track meals, water, weight, calories, proteins, fats, and ca
 - 🛒 Shopping list generated from selected meal ingredients, with grouping and checklist logic
 - 💧 Water tracking with daily goal logic and reminder UI
 - 🏆 Gamification, streaks, profile stats, and progress-oriented UI
-- 📱 Mobile-first PWA-style layout with bottom navigation and safe-area support
+- 📱 Mobile-first web UI, prepared for a future phone app
 - 🗄️ PostgreSQL backend for persistent user data
 
 ## 🧩 Problem Solved
@@ -60,19 +60,31 @@ The main goal is to make nutrition tracking feel faster, softer, and more person
 - Gemini API
 - OpenAI fallback support
 
-## 📸 Screenshots
+## 📱 Mobile Screenshots
 
 ### Dashboard
 
-![Dashboard](screenshots/home-page.png)
+![Mobile dashboard](screenshots/mobile-dashboard.png)
+
+### Add Food
+
+![Mobile add food](screenshots/mobile-add-food.png)
+
+### Water Tracker
+
+![Mobile water tracker](screenshots/mobile-water.png)
+
+### Rewards
+
+![Mobile rewards](screenshots/mobile-rewards.png)
+
+### Profile
+
+![Mobile profile](screenshots/mobile-profile.png)
 
 ### AI Meal Plan
 
-![AI meal plan](screenshots/meal-plan.png)
-
-### Mobile View
-
-![Mobile view](screenshots/mobile-view.png)
+![Mobile AI meal plan](screenshots/mobile-meal-plan.png)
 
 ## 🏗️ Project Structure
 
@@ -82,9 +94,12 @@ NutriAI/
 |   |-- manifest.json
 |   `-- sw.js
 |-- screenshots/
-|   |-- home-page.png
-|   |-- meal-plan.png
-|   `-- mobile-view.png
+|   |-- mobile-dashboard.png
+|   |-- mobile-add-food.png
+|   |-- mobile-water.png
+|   |-- mobile-rewards.png
+|   |-- mobile-profile.png
+|   `-- mobile-meal-plan.png
 |-- server/
 |   |-- index.js
 |   |-- migrate.js
@@ -169,11 +184,13 @@ npm run typecheck    # run TypeScript/JS project checks
 
 ## 🌐 Live Demo
 
-Deployment link coming soon.
+Deployment link coming soon.  
+Current version: web app. Next step: phone app release.
 
 ## 🧭 Roadmap
 
 - Production deployment
+- Native mobile app version
 - More accurate barcode fallback with AI label reading
 - Native mobile health integrations
 - Advanced progress analytics
