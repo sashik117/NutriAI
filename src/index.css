@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-nunito: 'Nunito', sans-serif;
+
+    --background: 30 30% 98%;
+    --foreground: 250 20% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 250 20% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 250 20% 15%;
+    --primary: 168 45% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 80% 88%;
+    --secondary-foreground: 25 50% 30%;
+    --muted: 250 15% 94%;
+    --muted-foreground: 250 10% 50%;
+    --accent: 270 40% 88%;
+    --accent-foreground: 270 30% 30%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 250 15% 90%;
+    --input: 250 15% 90%;
+    --ring: 168 45% 55%;
+    --chart-1: 168 45% 55%;
+    --chart-2: 25 80% 70%;
+    --chart-3: 270 40% 70%;
+    --chart-4: 340 60% 70%;
+    --chart-5: 200 50% 60%;
+    --radius: 1rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 250 20% 8%;
+    --foreground: 30 20% 95%;
+    --card: 250 18% 12%;
+    --card-foreground: 30 20% 95%;
+    --popover: 250 18% 12%;
+    --popover-foreground: 30 20% 95%;
+    --primary: 168 45% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 40% 25%;
+    --secondary-foreground: 25 60% 85%;
+    --muted: 250 15% 18%;
+    --muted-foreground: 250 10% 55%;
+    --accent: 270 30% 25%;
+    --accent-foreground: 270 30% 85%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 250 15% 20%;
+    --input: 250 15% 20%;
+    --ring: 168 45% 50%;
+    --chart-1: 168 45% 50%;
+    --chart-2: 25 60% 55%;
+    --chart-3: 270 35% 55%;
+    --chart-4: 340 50% 55%;
+    --chart-5: 200 40% 50%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground font-nunito;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    text-size-adjust: 100%;
+  }
+
+  .overflow-y-auto, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

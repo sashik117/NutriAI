@@ -1,0 +1,21 @@
+{
+  "name": "NutriAI - КБЖУ трекер",
+  "short_name": "NutriAI",
+  "description": "Відстежуй КБЖУ, воду, вагу та харчування з ШІ.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9f7f4",
+  "theme_color": "#4db896",
+  "icons": [
+    {
+      "src": "/nutriai-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle", "food"],
+  "lang": "uk"
+}
