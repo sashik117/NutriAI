@@ -5,6 +5,7 @@ import { Camera, ImagePlus, Loader2, ScanBarcode, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { hasUsefulNutrition, repairNutritionItem } from '@/lib/nutritionFallback';
+import { useLanguage } from '@/lib/LanguageContext';
 
 function cleanText(value, fallback = '') {
   return String(value || fallback).replace(/\*/g, '').replace(/[•]/g, '').replace(/\s+/g, ' ').trim();
@@ -83,6 +84,7 @@ async function fetchProductByCode(code) {
 }
 
 export default function BarcodeScanner({ onResult }) {
+  const { text } = useLanguage();
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -276,7 +278,7 @@ export default function BarcodeScanner({ onResult }) {
       />
       <Button type="button" variant="outline" className="h-12 w-full rounded-xl text-xs gap-2" onClick={() => setOpen(true)} disabled={scanning}>
         {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanBarcode className="h-4 w-4" />}
-        {scanning ? 'Шукаю продукт...' : 'Штрих-код'}
+        {scanning ? text('Шукаю продукт...', 'Searching...') : text('Штрих-код', 'Barcode')}
       </Button>
 
       <AnimatePresence>
@@ -297,8 +299,8 @@ export default function BarcodeScanner({ onResult }) {
             >
               <div className="mb-3 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-extrabold">Сканер штрих-коду</p>
-                  <p className="text-xs text-muted-foreground">Якщо бази немає, Gemini прочитає етикетку</p>
+                  <p className="text-sm font-extrabold">{text('Сканер штрих-коду', 'Barcode scanner')}</p>
+                  <p className="text-xs text-muted-foreground">{text('Якщо бази немає, Gemini прочитає етикетку', 'If the database misses it, Gemini reads the label')}</p>
                 </div>
                 <button className="rounded-full p-2 text-muted-foreground hover:bg-muted" onClick={closeModal}>
                   <X className="h-4 w-4" />
@@ -309,7 +311,7 @@ export default function BarcodeScanner({ onResult }) {
                 <div className="mb-3 overflow-hidden rounded-2xl bg-black">
                   <video ref={videoRef} muted playsInline className="h-56 w-full object-cover" />
                   <div className="border-t border-white/10 bg-black px-3 py-2 text-center text-xs text-white/80">
-                    Наведіть камеру на штрих-код
+                    {text('Наведіть камеру на штрих-код', 'Point the camera at the barcode')}
                   </div>
                 </div>
               )}
@@ -320,22 +322,22 @@ export default function BarcodeScanner({ onResult }) {
                 </div>
               )}
 
-              {detectedCode && <p className="mb-3 rounded-xl bg-muted p-2 text-center text-xs text-muted-foreground">Код: {detectedCode}</p>}
+              {detectedCode && <p className="mb-3 rounded-xl bg-muted p-2 text-center text-xs text-muted-foreground">{text('Код', 'Code')}: {detectedCode}</p>}
 
               {needsLabelPhoto && (
                 <p className="mb-3 rounded-xl bg-primary/10 p-3 text-center text-xs text-primary">
-                  Продукту немає в базі. Сфотографуйте етикетку з КБЖУ, і Gemini порахує все сам.
+                  {text('Продукту немає в базі. Сфотографуйте етикетку з КБЖУ, і Gemini порахує все сам.', 'Product is not in the database. Photograph the nutrition label and Gemini will calculate it.')}
                 </p>
               )}
 
               <div className="grid grid-cols-2 gap-2">
                 <Button className="h-12 rounded-xl gap-2" onClick={startCamera} disabled={scanning || cameraActive}>
                   <Camera className="h-4 w-4" />
-                  Камера
+                  {text('Камера', 'Camera')}
                 </Button>
                 <Button className="h-12 rounded-xl gap-2" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={scanning}>
                   {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-                  Етикетка
+                  {text('Етикетка', 'Label')}
                 </Button>
               </div>
             </motion.div>

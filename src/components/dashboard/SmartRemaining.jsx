@@ -1,4 +1,5 @@
 import { Beef, Droplet, Flame, Wheat } from 'lucide-react';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const rows = [
   { key: 'calories', label: 'Калорії', unit: 'ккал', icon: Flame },
@@ -16,15 +17,24 @@ function getStatus(current, goal) {
 }
 
 export default function SmartRemaining({ totals, goals }) {
+  const { isEnglish, text } = useLanguage();
+  const localizedRows = rows.map((row) => ({
+    ...row,
+    label: isEnglish
+      ? { calories: 'Calories', proteins: 'Protein', fats: 'Fats', carbs: 'Carbs' }[row.key]
+      : row.label,
+    unit: isEnglish ? (row.unit === 'ккал' ? 'kcal' : 'g') : row.unit,
+  }));
+
   return (
     <section className="rounded-2xl border border-border bg-card p-3.5">
       <div className="mb-3">
-        <p className="text-sm font-extrabold">Залишилось на сьогодні</p>
-        <p className="text-[11px] text-muted-foreground">Оранжеве - недобір, зелене - норма, червоне - перебір</p>
+        <p className="text-sm font-extrabold">{text('Залишилось на сьогодні', 'Left for today')}</p>
+        <p className="text-[11px] text-muted-foreground">{text('Оранжеве - недобір, зелене - норма, червоне - перебір', 'Orange - low, green - goal, red - over')}</p>
       </div>
 
       <div className="space-y-2.5">
-        {rows.map(({ key, label, unit, icon: Icon }) => {
+        {localizedRows.map(({ key, label, unit, icon: Icon }) => {
           const current = Math.round(totals[key] || 0);
           const goal = Math.round(goals[key] || 0);
           const remaining = goal - current;
@@ -47,7 +57,7 @@ export default function SmartRemaining({ totals, goals }) {
               </div>
               <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
                 <span>{current}/{goal} {unit}</span>
-                <span>{status.label}</span>
+                <span>{isEnglish ? { 'немає норми': 'no goal', 'перебір': 'over', 'норма': 'goal', 'ще добрати': 'left' }[status.label] : status.label}</span>
               </div>
             </div>
           );

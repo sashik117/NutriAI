@@ -21,6 +21,7 @@ import LiveCameraAnalyzer from '../components/food/LiveCameraAnalyzer';
 import RecipeGenerator from '../components/food/RecipeGenerator';
 import MealCard from '../components/dashboard/MealCard';
 import { repairNutritionItem } from '@/lib/nutritionFallback';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const MEAL_ORDER = [
   { key: 'breakfast', label: 'Сніданок', emoji: '🥞', Icon: Coffee, tone: 'bg-amber-100 text-amber-700 border-amber-200' },
@@ -77,6 +78,7 @@ const normalizeResult = (result) => {
 };
 
 export default function FoodLog() {
+  const { isEnglish, text: tr } = useLanguage();
   const [mealType, setMealType] = useState(() => getSuggestedMealType());
   const [text, setText] = useState('');
   const [aiResult, setAiResult] = useState(null);
@@ -262,27 +264,34 @@ export default function FoodLog() {
   const otherSnacks = todayLogs.filter((log) => !knownMealKeys.includes(log.meal_type));
   const hasLogs = groupedLogs.length > 0 || otherSnacks.length > 0;
   const selectedMeal = ADD_MEAL_OPTIONS.find((meal) => meal.key === mealType) || ADD_MEAL_OPTIONS[0];
+  const englishMealLabels = {
+    breakfast: 'Breakfast',
+    lunch: 'Lunch',
+    dinner: 'Dinner',
+    snack: 'Snack',
+  };
+  const visibleMealLabel = (meal) => (isEnglish ? englishMealLabels[meal.key] || meal.label : meal.label);
 
   return (
     <div className="space-y-4 pt-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-extrabold">Додати їжу</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Опишіть, сфоткайте або знайдіть продукт</p>
+        <h1 className="text-2xl font-extrabold">{tr('Додати їжу', 'Add food')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{tr('Опишіть, сфоткайте або знайдіть продукт', 'Describe, scan, or search for food')}</p>
       </motion.div>
 
       <section className="rounded-2xl border border-border bg-card p-3">
         <div className="mb-2">
-          <p className="text-sm font-bold">Написати для ШІ</p>
-          <p className="text-xs text-muted-foreground">Наприклад: молоко 200 мл і пластівці 50 г</p>
+          <p className="text-sm font-bold">{tr('Написати для ШІ', 'Write for AI')}</p>
+          <p className="text-xs text-muted-foreground">{tr('Наприклад: молоко 200 мл і пластівці 50 г', 'Example: milk 200 ml and oats 50 g')}</p>
         </div>
         <div className="mb-3">
-          <label className="mb-1.5 block text-xs font-bold text-muted-foreground">Прийом їжі</label>
+          <label className="mb-1.5 block text-xs font-bold text-muted-foreground">{tr('Прийом їжі', 'Meal type')}</label>
           <Select value={mealType} onValueChange={setMealType}>
             <SelectTrigger className="h-12 rounded-2xl border-primary/20 bg-primary/5 px-4 text-sm font-bold shadow-sm">
               <SelectValue>
                 <span className="inline-flex items-center gap-2">
                   <span className="text-lg">{selectedMeal.emoji}</span>
-                  <span>{selectedMeal.label}</span>
+                  <span>{visibleMealLabel(selectedMeal)}</span>
                 </span>
               </SelectValue>
             </SelectTrigger>
@@ -290,7 +299,7 @@ export default function FoodLog() {
               {ADD_MEAL_OPTIONS.map((meal) => (
                 <SelectItem key={meal.key} value={meal.key} className="rounded-xl py-3 text-sm font-semibold">
                   <span className="mr-2">{meal.emoji}</span>
-                  {meal.label}
+                  {visibleMealLabel(meal)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -299,7 +308,7 @@ export default function FoodLog() {
         <div className="flex items-end gap-3">
           <div className="relative flex-1">
             <Textarea
-              placeholder="Наприклад: гречка з куркою 250 г і салат"
+              placeholder={tr('Наприклад: гречка з куркою 250 г і салат', 'Example: buckwheat with chicken 250 g and salad')}
               value={text}
               onChange={(event) => setText(event.target.value)}
               className="min-h-[82px] resize-none rounded-xl pr-12 text-sm"
@@ -316,7 +325,7 @@ export default function FoodLog() {
         <LiveCameraAnalyzer onResult={handleAiResult} />
         <Button type="button" variant={showSearch ? 'default' : 'outline'} className="h-12 rounded-xl text-xs gap-2" onClick={() => setShowSearch((value) => !value)}>
           <Search className="h-4 w-4" />
-          Пошук
+          {tr('Пошук', 'Search')}
         </Button>
         <BarcodeScanner onResult={handleBarcodeResult} />
       </section>
@@ -329,8 +338,8 @@ export default function FoodLog() {
         )}
       </AnimatePresence>
 
-      {analyzing && <div className="flex items-center gap-2 rounded-xl bg-primary/5 p-3 text-sm font-medium"><Loader2 className="h-4 w-4 animate-spin text-primary" />ШІ рахує КБЖУ...</div>}
-      {saving && <div className="flex items-center gap-2 rounded-xl bg-primary/5 p-3 text-sm font-medium"><Loader2 className="h-4 w-4 animate-spin text-primary" />Зберігаю...</div>}
+      {analyzing && <div className="flex items-center gap-2 rounded-xl bg-primary/5 p-3 text-sm font-medium"><Loader2 className="h-4 w-4 animate-spin text-primary" />{tr('ШІ рахує КБЖУ...', 'AI is calculating macros...')}</div>}
+      {saving && <div className="flex items-center gap-2 rounded-xl bg-primary/5 p-3 text-sm font-medium"><Loader2 className="h-4 w-4 animate-spin text-primary" />{tr('Зберігаю...', 'Saving...')}</div>}
 
       {aiResult && (
         <div className="space-y-2">
@@ -341,7 +350,7 @@ export default function FoodLog() {
 
       {aiTip && !aiResult && (
         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl bg-accent/50 p-3">
-          <p className="mb-1 text-xs font-semibold text-accent-foreground">Порада ШІ</p>
+          <p className="mb-1 text-xs font-semibold text-accent-foreground">{tr('Порада ШІ', 'AI tip')}</p>
           <p className="text-xs text-accent-foreground/80">{aiTip}</p>
         </motion.div>
       )}
@@ -352,14 +361,14 @@ export default function FoodLog() {
       {!hasLogs && (
         <div className="rounded-3xl border border-dashed border-border bg-card p-5 text-center">
           <Camera className="mx-auto mb-2 h-8 w-8 text-primary" />
-          <p className="text-sm font-bold">Ще нічого не з'їли?</p>
-          <p className="mt-1 text-xs text-muted-foreground">Сфоткайте свою тарілку або знайдіть продукт через пошук.</p>
+          <p className="text-sm font-bold">{tr("Ще нічого не з'їли?", 'No food yet?')}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{tr('Сфоткайте свою тарілку або знайдіть продукт через пошук.', 'Scan your plate or find a product with search.')}</p>
         </div>
       )}
 
       {hasLogs && (
         <div className="space-y-3 pt-2">
-          <h2 className="text-sm font-bold">Сьогоднішній раціон</h2>
+          <h2 className="text-sm font-bold">{tr('Сьогоднішній раціон', 'Today meals')}</h2>
           {groupedLogs.map((group) => (
             <div key={group.key}>
               <p className="mb-1.5 text-xs font-semibold text-muted-foreground">{group.label}</p>

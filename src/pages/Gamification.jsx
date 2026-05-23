@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Flame, Loader2, Snowflake, Sparkles, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const BADGES = [
   { type: 'first_log', emoji: '🍽️', title: 'Перший крок', description: 'Перший запис їжі' },
@@ -50,6 +51,7 @@ function getBestStreak(foodLogs) {
 }
 
 export default function Gamification() {
+  const { isEnglish, text } = useLanguage();
   const [generatingChallenge, setGeneratingChallenge] = useState(false);
   const [challenge, setChallenge] = useState(null);
   const [freezeCount, setFreezeCount] = useState(() => Number(localStorage.getItem('kbju_streak_freeze') || '1'));
@@ -147,12 +149,27 @@ export default function Gamification() {
   };
 
   const unlockedTypes = achievements.map((item) => item.type);
+  const badgeText = (badge) => {
+    if (!isEnglish) return badge;
+    const map = {
+      first_log: ['First step', 'First food entry'],
+      streak_3: ['3 days', 'Three days in a row'],
+      streak_7: ['7 days', 'Weekly streak'],
+      streak_30: ['30 days', 'Monthly streak'],
+      water_5: ['Water', 'Water goal for 5 days'],
+      protein_7: ['Protein', 'Protein goal for 7 days'],
+      logs_50: ['50 entries', 'Lots of data'],
+      weight_logged: ['Weight', 'First weight entry'],
+    };
+    const [title, description] = map[badge.type] || [badge.title, badge.description];
+    return { ...badge, title, description };
+  };
 
   return (
     <div className="space-y-5 pb-8 pt-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-extrabold">Нагороди 🏆</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">Серія, бейджі та персональні виклики</p>
+        <h1 className="text-2xl font-extrabold">{text('Нагороди 🏆', 'Rewards 🏆')}</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">{text('Серія, бейджі та персональні виклики', 'Streaks, badges, and personal challenges')}</p>
       </motion.div>
 
       <motion.section
@@ -166,8 +183,8 @@ export default function Gamification() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-4xl font-extrabold leading-none text-orange-600">{streak}</p>
-            <p className="mt-1 text-sm font-bold">днів поточної серії</p>
-            <p className="text-xs text-muted-foreground">Додай їжу сьогодні, щоб серія не зникла.</p>
+            <p className="mt-1 text-sm font-bold">{text('днів поточної серії', 'days in current streak')}</p>
+            <p className="text-xs text-muted-foreground">{text('Додай їжу сьогодні, щоб серія не зникла.', 'Add food today to keep the streak alive.')}</p>
           </div>
           <button
             onClick={useFreeze}
@@ -184,22 +201,23 @@ export default function Gamification() {
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-2xl border border-border bg-card p-3 text-center">
           <p className="text-xl font-extrabold text-primary">{foodLogs.length}</p>
-          <p className="text-[10px] text-muted-foreground">записів</p>
+          <p className="text-[10px] text-muted-foreground">{text('записів', 'entries')}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-3 text-center">
           <p className="text-xl font-extrabold text-chart-3">{achievements.length}</p>
-          <p className="text-[10px] text-muted-foreground">бейджів</p>
+          <p className="text-[10px] text-muted-foreground">{text('бейджів', 'badges')}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-3 text-center">
           <p className="text-xl font-extrabold text-chart-2">{bestStreak}</p>
-          <p className="text-[10px] text-muted-foreground">макс. серія</p>
+          <p className="text-[10px] text-muted-foreground">{text('макс. серія', 'best streak')}</p>
         </div>
       </div>
 
       <section>
-        <p className="mb-3 text-sm font-bold">Бейджі</p>
+        <p className="mb-3 text-sm font-bold">{text('Бейджі', 'Badges')}</p>
         <div className="grid grid-cols-2 gap-2">
-          {BADGES.map((badge, index) => {
+          {BADGES.map((rawBadge, index) => {
+            const badge = badgeText(rawBadge);
             const isUnlocked = unlockedTypes.includes(badge.type);
             return (
               <motion.div
@@ -224,11 +242,11 @@ export default function Gamification() {
       </section>
 
       <section>
-        <p className="mb-3 text-sm font-bold">Персональний виклик</p>
+        <p className="mb-3 text-sm font-bold">{text('Персональний виклик', 'Personal challenge')}</p>
         {!challenge ? (
           <Button className="h-12 w-full rounded-xl" onClick={generateChallenge} disabled={generatingChallenge} variant="outline">
             {generatingChallenge ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            Згенерувати виклик ШІ
+            {text('Згенерувати виклик ШІ', 'Generate AI challenge')}
           </Button>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 rounded-2xl bg-accent/40 p-4">
@@ -248,7 +266,7 @@ export default function Gamification() {
               ))}
             </ul>
             <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={() => setChallenge(null)}>
-              Новий виклик
+              {text('Новий виклик', 'New challenge')}
             </Button>
           </motion.div>
         )}

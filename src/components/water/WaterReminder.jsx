@@ -5,10 +5,12 @@ import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const REMINDER_INTERVALS = [30, 60, 90, 120]; // minutes
 
 export default function WaterReminder({ currentMl, goalMl }) {
+  const { text } = useLanguage();
   const [enabled, setEnabled] = useState(() => localStorage.getItem('water_reminder') === 'true');
   const [intervalMin, setIntervalMin] = useState(() => parseInt(localStorage.getItem('water_reminder_interval') || '60'));
   const [permission, setPermission] = useState(() =>
@@ -23,16 +25,16 @@ export default function WaterReminder({ currentMl, goalMl }) {
     try {
       await nutriApi.entities.WaterLog.create({ amount_ml: ml, date: today });
       queryClient.invalidateQueries({ queryKey: ['waterLogs'] });
-      toast.success(`💧 +${ml} мл додано!`);
+      toast.success(text(`💧 +${ml} мл додано!`, `💧 +${ml} ml added!`));
       setShowInApp(false);
     } catch (error) {
-      toast.error(error.message || 'Не вдалося додати воду');
+      toast.error(error.message || text('Не вдалося додати воду', 'Could not add water'));
     }
   };
 
   const requestPermission = async () => {
     if (!('Notification' in window)) {
-      toast.error('Ваш браузер не підтримує сповіщення');
+      toast.error(text('Ваш браузер не підтримує сповіщення', 'Your browser does not support notifications'));
       return false;
     }
     const result = await Notification.requestPermission();
@@ -45,8 +47,8 @@ export default function WaterReminder({ currentMl, goalMl }) {
     if (remaining <= 0) return;
 
     if (permission === 'granted') {
-      const n = new Notification('💧 Час попити воду!', {
-        body: `Залишилось: ${remaining} мл. Не забувай про гідратацію!`,
+      const n = new Notification(text('💧 Час попити воду!', '💧 Time to drink water!'), {
+        body: text(`Залишилось: ${remaining} мл. Не забувай про гідратацію!`, `${remaining} ml left. Stay hydrated!`),
         icon: '/nutriai-icon.svg',
         tag: 'water-reminder',
         renotify: true,
@@ -74,12 +76,12 @@ export default function WaterReminder({ currentMl, goalMl }) {
       setEnabled(true);
       localStorage.setItem('water_reminder', 'true');
       startTimer(intervalMin);
-      toast.success(`🔔 Нагадування кожні ${intervalMin} хв увімкнено`);
+      toast.success(text(`🔔 Нагадування кожні ${intervalMin} хв увімкнено`, `🔔 Reminder every ${intervalMin} min enabled`));
     } else {
       clearInterval(timerRef.current);
       setEnabled(false);
       localStorage.setItem('water_reminder', 'false');
-      toast('🔕 Нагадування вимкнено');
+      toast(text('🔕 Нагадування вимкнено', '🔕 Reminder disabled'));
     }
   };
 
@@ -110,8 +112,8 @@ export default function WaterReminder({ currentMl, goalMl }) {
                 <Droplets className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <p className="font-bold text-sm">💧 Час попити воду!</p>
-                <p className="text-xs text-muted-foreground">Скільки випити зараз?</p>
+                <p className="font-bold text-sm">{text('💧 Час попити воду!', '💧 Time to drink water!')}</p>
+                <p className="text-xs text-muted-foreground">{text('Скільки випити зараз?', 'How much now?')}</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -121,7 +123,7 @@ export default function WaterReminder({ currentMl, goalMl }) {
                   onClick={() => logWater(ml)}
                   className="bg-blue-500 hover:bg-blue-600 active:scale-95 text-white rounded-xl py-2 text-sm font-bold transition-all"
                 >
-                  +{ml} мл
+                  +{ml} {text('мл', 'ml')}
                 </button>
               ))}
             </div>
@@ -129,7 +131,7 @@ export default function WaterReminder({ currentMl, goalMl }) {
               onClick={() => setShowInApp(false)}
               className="mt-2 w-full text-xs text-muted-foreground py-1"
             >
-              Нагадати пізніше
+              {text('Нагадати пізніше', 'Remind later')}
             </button>
           </motion.div>
         )}
@@ -141,7 +143,7 @@ export default function WaterReminder({ currentMl, goalMl }) {
           <div className="flex items-center gap-2">
             {enabled ? <Bell className="w-4 h-4 text-primary" /> : <BellOff className="w-4 h-4 text-muted-foreground" />}
             <span className="text-sm font-semibold">
-              {enabled ? `Нагадування кожні ${intervalMin} хв` : 'Нагадування про воду'}
+              {enabled ? text(`Нагадування кожні ${intervalMin} хв`, `Reminder every ${intervalMin} min`) : text('Нагадування про воду', 'Water reminder')}
             </span>
           </div>
           <button
@@ -162,7 +164,7 @@ export default function WaterReminder({ currentMl, goalMl }) {
                   intervalMin === min ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                 }`}
               >
-                {min}хв
+                {min}{text('хв', 'min')}
               </button>
             ))}
           </div>
@@ -174,7 +176,7 @@ export default function WaterReminder({ currentMl, goalMl }) {
             onClick={sendNotification}
             className="w-full text-xs text-muted-foreground underline"
           >
-            Тест сповіщення
+            {text('Тест сповіщення', 'Test notification')}
           </button>
         )}
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { format, isSameDay, subDays } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const DAYS_BACK = 30;
 const DAYS_FORWARD = 3;
@@ -87,6 +88,7 @@ function DayProgress({ dayNumber, ratio, hasLog, isSelected }) {
 }
 
 export default function ScrollableCalendar({ selectedDate, onSelectDate, logDates = [], dayStats = {} }) {
+  const { isEnglish } = useLanguage();
   const scrollRef = useRef(null);
   const today = new Date();
 
@@ -106,7 +108,7 @@ export default function ScrollableCalendar({ selectedDate, onSelectDate, logDate
   return (
     <div className="rounded-2xl border border-border bg-card px-3 py-3">
       <p className="mb-2 px-1 text-xs font-bold text-muted-foreground">
-        {format(selectedDate, 'LLLL yyyy', { locale: uk })}
+        {format(selectedDate, 'LLLL yyyy', isEnglish ? undefined : { locale: uk })}
       </p>
       <div
         ref={scrollRef}
@@ -119,13 +121,13 @@ export default function ScrollableCalendar({ selectedDate, onSelectDate, logDate
           const key = format(day, 'yyyy-MM-dd');
           const hasLog = logDates.includes(key);
           const ratio = dayStats[key]?.ratio || 0;
-          const tone = hasLog ? progressTone(ratio) : { label: 'Немає записів' };
+          const tone = hasLog ? progressTone(ratio) : { label: isEnglish ? 'No entries' : 'Немає записів' };
 
           return (
             <button
               key={key}
               onClick={() => onSelectDate(day)}
-              title={`${format(day, 'd MMMM', { locale: uk })}: ${tone.label}`}
+              title={`${format(day, 'd MMMM', isEnglish ? undefined : { locale: uk })}: ${tone.label}`}
               className={cn(
                 'flex min-w-[50px] shrink-0 flex-col items-center rounded-xl py-2 transition-all duration-200 active:scale-95',
                 isSelected
@@ -136,7 +138,7 @@ export default function ScrollableCalendar({ selectedDate, onSelectDate, logDate
               )}
             >
               <span className="text-[9px] font-semibold uppercase opacity-70">
-                {format(day, 'EEE', { locale: uk })}
+                {format(day, 'EEE', isEnglish ? undefined : { locale: uk })}
               </span>
               <DayProgress
                 dayNumber={format(day, 'd')}

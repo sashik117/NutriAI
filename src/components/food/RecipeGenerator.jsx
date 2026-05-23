@@ -3,8 +3,10 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { nutriApi } from '@/api/nutriApi';
 import { toast } from 'sonner';
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function RecipeGenerator({ remainingCalories = 0 }) {
+  const { isEnglish, text } = useLanguage();
   const [recipe, setRecipe] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,12 +16,15 @@ export default function RecipeGenerator({ remainingCalories = 0 }) {
       const target = Math.max(200, Math.round(remainingCalories || 0));
       const result = await nutriApi.integrations.Core.InvokeLLM({
         model: 'gemini_3_flash',
-        prompt: `Запропонуй одну просту страву українською приблизно на ${target} ккал.
+        prompt: isEnglish
+          ? `Suggest one simple meal in English for about ${target} kcal.
+Keep it short: title, serving in grams, ingredients, and approximate calories/protein/fats/carbs. No long explanation.`
+          : `Запропонуй одну просту страву українською приблизно на ${target} ккал.
 Дай коротко: назву, порцію в грамах, інгредієнти і приблизне КБЖУ. Без довгого пояснення.`,
       });
       setRecipe(typeof result === 'string' ? result : result?.text || '');
     } catch (error) {
-      toast.error(error.message || 'Не вдалося згенерувати ідею');
+      toast.error(error.message || text('Не вдалося згенерувати ідею', 'Could not generate an idea'));
     } finally {
       setLoading(false);
     }
@@ -29,9 +34,9 @@ export default function RecipeGenerator({ remainingCalories = 0 }) {
     <section className="rounded-2xl border border-primary/20 bg-primary/5 p-3.5">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-extrabold">Ідея від ШІ</p>
+          <p className="text-sm font-extrabold">{text('Ідея від ШІ', 'AI idea')}</p>
           <p className="text-xs text-muted-foreground">
-            Підібрати страву під залишок калорій
+            {text('Підібрати страву під залишок калорій', 'Pick a meal for your remaining calories')}
           </p>
         </div>
         <Button size="sm" className="shrink-0 rounded-xl" onClick={generate} disabled={loading}>

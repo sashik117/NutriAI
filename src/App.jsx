@@ -15,6 +15,7 @@ import WeightTracker from './pages/WeightTracker';
 import Gamification from './pages/Gamification';
 import MealPlan from './pages/MealPlan';
 import { ThemeProvider } from './lib/ThemeContext';
+import { LanguageProvider } from './lib/LanguageContext';
 import SplashScreen from './components/layout/SplashScreen';
 import OnboardingSlides from './components/layout/OnboardingSlides';
 
@@ -67,15 +68,17 @@ function App() {
 
   return (
     <ThemeProvider>
-    <SplashScreen />
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+      <LanguageProvider>
+        <SplashScreen />
+        <AuthProvider>
+          <QueryClientProvider client={queryClientInstance}>
+            <Router>
+              <AuthenticatedApp />
+            </Router>
+            <Toaster />
+          </QueryClientProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   )
 }

@@ -3,6 +3,7 @@ import { addMonths, endOfMonth, format, isAfter, isBefore, isSameMonth, startOfM
 import { uk } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/LanguageContext';
 
 function dayTone(ratio, hasLog) {
   if (!hasLog) return { className: 'bg-muted text-muted-foreground/60', label: 'Немає записів' };
@@ -13,6 +14,7 @@ function dayTone(ratio, hasLog) {
 }
 
 export default function ActivityHeatmap({ foodLogs = [], caloriesGoal = 2000 }) {
+  const { isEnglish, text } = useLanguage();
   const today = new Date();
   const firstLogDate = useMemo(() => {
     const dates = foodLogs.map((log) => log.date).filter(Boolean).sort();
@@ -49,9 +51,9 @@ export default function ActivityHeatmap({ foodLogs = [], caloriesGoal = 2000 }) 
     <section className="rounded-2xl border border-border bg-card p-3.5">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-extrabold">Активність харчування</p>
+          <p className="text-sm font-extrabold">{text('Активність харчування', 'Food activity')}</p>
           <p className="text-[11px] text-muted-foreground capitalize">
-            {format(visibleMonth, 'LLLL yyyy', { locale: uk })}
+            {format(visibleMonth, 'LLLL yyyy', isEnglish ? undefined : { locale: uk })}
           </p>
         </div>
         <div className="flex gap-1">
@@ -80,7 +82,7 @@ export default function ActivityHeatmap({ foodLogs = [], caloriesGoal = 2000 }) 
           return (
             <div
               key={day.key}
-              title={`${day.key}: ${Math.round(day.calories)} ккал · ${tone.label}`}
+              title={`${day.key}: ${Math.round(day.calories)} ${text('ккал', 'kcal')}`}
               className={cn(
                 'flex aspect-square items-center justify-center rounded-lg text-[10px] font-extrabold shadow-sm transition',
                 tone.className
@@ -94,7 +96,7 @@ export default function ActivityHeatmap({ foodLogs = [], caloriesGoal = 2000 }) 
 
       {!monthHasAnyData && (
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          У цьому місяці ще немає записів.
+          {text('У цьому місяці ще немає записів.', 'No entries for this month yet.')}
         </p>
       )}
 

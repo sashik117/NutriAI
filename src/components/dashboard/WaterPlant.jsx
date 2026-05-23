@@ -1,18 +1,20 @@
 import { motion } from 'framer-motion';
 import { Droplets, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function WaterPlant({ current, goal, onAddWater }) {
+  const { text } = useLanguage();
   const progress = Math.min(current / (goal || 2000), 1);
   const glasses = Math.floor(current / 250);
   const totalGlasses = Math.ceil((goal || 2000) / 250);
 
   // Plant mood based on progress
   const getMood = () => {
-    if (progress >= 0.8) return { emoji: '🌸', label: 'Квітне!' };
-    if (progress >= 0.5) return { emoji: '🌿', label: 'Росте' };
-    if (progress >= 0.2) return { emoji: '🌱', label: 'Паросток' };
-    return { emoji: '🥀', label: 'Спрагла...' };
+    if (progress >= 0.8) return { emoji: '🌸', label: text('Квітне!', 'Blooming!') };
+    if (progress >= 0.5) return { emoji: '🌿', label: text('Росте', 'Growing') };
+    if (progress >= 0.2) return { emoji: '🌱', label: text('Паросток', 'Sprout') };
+    return { emoji: '🥀', label: text('Спрагла...', 'Thirsty...') };
   };
 
   const mood = getMood();
@@ -22,10 +24,10 @@ export default function WaterPlant({ current, goal, onAddWater }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Droplets className="w-5 h-5 text-chart-5" />
-          <span className="font-bold text-sm">Вода</span>
+          <span className="font-bold text-sm">{text('Вода', 'Water')}</span>
         </div>
         <span className="text-xs text-muted-foreground font-medium">
-          {current} / {goal} мл
+          {current} / {goal} {text('мл', 'ml')}
         </span>
       </div>
 

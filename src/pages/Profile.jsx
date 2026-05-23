@@ -11,9 +11,10 @@ import { Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateDailyNeeds } from '../lib/kbjuCalculator';
 import { useAuth } from '@/lib/AuthContext';
+import { useLanguage } from '@/lib/LanguageContext';
 import ActivityHeatmap from '../components/dashboard/ActivityHeatmap';
 
-const activityLabels = {
+const activityLabelsUk = {
   sedentary: 'Сидячий',
   light: 'Легка активність',
   moderate: 'Середня активність',
@@ -21,22 +22,48 @@ const activityLabels = {
   very_active: 'Дуже висока активність',
 };
 
-const goalLabels = {
+const activityLabelsEn = {
+  sedentary: 'Sedentary',
+  light: 'Light activity',
+  moderate: 'Moderate activity',
+  active: 'High activity',
+  very_active: 'Very high activity',
+};
+
+const goalLabelsUk = {
   lose: 'Схуднення',
   maintain: 'Підтримка ваги',
   gain: 'Набір маси',
 };
 
-const goalHints = {
+const goalLabelsEn = {
+  lose: 'Weight loss',
+  maintain: 'Weight maintenance',
+  gain: 'Muscle gain',
+};
+
+const goalHintsUk = {
   lose: 'Система закладає помірний дефіцит, щоб рухатись до цілі без жорстких зривів.',
   maintain: 'Калораж тримається біля підтримки, щоб вага була стабільною.',
   gain: 'Система додає м’який профіцит для набору без зайвого перебору.',
 };
 
-const personalityLabels = {
+const goalHintsEn = {
+  lose: 'The system sets a moderate deficit so the goal feels realistic and sustainable.',
+  maintain: 'Calories stay close to maintenance so weight remains stable.',
+  gain: 'The system adds a gentle surplus for steady gain without going too far over.',
+};
+
+const personalityLabelsUk = {
   caring_grandma: 'Турботлива бабуся',
   strict_coach: 'Суворий тренер',
   lofi_friend: 'LoFi-друг',
+};
+
+const personalityLabelsEn = {
+  caring_grandma: 'Caring guide',
+  strict_coach: 'Strict coach',
+  lofi_friend: 'LoFi friend',
 };
 
 const defaultForm = {
@@ -58,6 +85,7 @@ const toNumber = (value, fallback = 0) => {
 export default function Profile() {
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
+  const { language, isEnglish, setLanguage, text } = useLanguage();
   const initializedRef = useRef(false);
   const autosaveTimerRef = useRef(null);
   const [saveState, setSaveState] = useState('idle');
@@ -142,6 +170,17 @@ export default function Profile() {
   }, [form, calculated.goal, calculated.calories, calculated.proteins, calculated.fats, calculated.carbs, calculated.water, existing, isLoading, queryClient]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const activityLabels = isEnglish ? activityLabelsEn : activityLabelsUk;
+  const goalLabels = isEnglish ? goalLabelsEn : goalLabelsUk;
+  const goalHints = isEnglish ? goalHintsEn : goalHintsUk;
+  const personalityLabels = isEnglish ? personalityLabelsEn : personalityLabelsUk;
+  const profileMeta = [
+    user?.nickname || user?.name,
+    user?.email,
+    saveState === 'saving' ? text('автозбереження', 'autosaving') : '',
+    saveState === 'saved' ? text('збережено', 'saved') : '',
+    saveState === 'error' ? text('помилка автозбереження', 'autosave error') : '',
+  ].filter(Boolean).join(' · ');
 
   if (isLoading) {
     return (
@@ -154,19 +193,36 @@ export default function Profile() {
   return (
     <div className="space-y-5 pb-8 pt-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-extrabold">Профіль</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {user?.nickname || user?.name} · {user?.email}
-          {saveState === 'saving' ? ' · автозбереження' : ''}
-          {saveState === 'saved' ? ' · збережено' : ''}
-          {saveState === 'error' ? ' · помилка автозбереження' : ''}
-        </p>
+        <h1 className="text-2xl font-extrabold">{text('Профіль', 'Profile')}</h1>
+        {profileMeta && <p className="mt-1 text-sm text-muted-foreground">{profileMeta}</p>}
       </motion.div>
 
       <Card>
         <CardContent className="space-y-4 p-4">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Стать</Label>
+            <Label className="text-xs font-semibold">{text('Мова', 'Language')}</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={language === 'uk' ? 'default' : 'outline'}
+                className="rounded-xl"
+                onClick={() => setLanguage('uk')}
+              >
+                Українська
+              </Button>
+              <Button
+                type="button"
+                variant={language === 'en' ? 'default' : 'outline'}
+                className="rounded-xl"
+                onClick={() => setLanguage('en')}
+              >
+                English
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">{text('Стать', 'Gender')}</Label>
             <div className="grid grid-cols-2 gap-2">
               {['male', 'female'].map((gender) => (
                 <Button
@@ -175,7 +231,7 @@ export default function Profile() {
                   className="rounded-xl"
                   onClick={() => update('gender', gender)}
                 >
-                  {gender === 'male' ? 'Чоловік' : 'Жінка'}
+                  {gender === 'male' ? text('Чоловік', 'Male') : text('Жінка', 'Female')}
                 </Button>
               ))}
             </div>
@@ -183,10 +239,10 @@ export default function Profile() {
 
           <div className="grid grid-cols-2 gap-3">
             {[
-              ['age', 'Вік', '25'],
-              ['height', 'Зріст, см', '170'],
-              ['weight', 'Поточна вага, кг', '70.5'],
-              ['target_weight', 'Цільова вага, кг', '65'],
+              ['age', text('Вік', 'Age'), '25'],
+              ['height', text('Зріст, см', 'Height, cm'), '170'],
+              ['weight', text('Поточна вага, кг', 'Current weight, kg'), '70.5'],
+              ['target_weight', text('Цільова вага, кг', 'Target weight, kg'), '65'],
             ].map(([key, label, placeholder]) => (
               <div key={key} className="space-y-1.5">
                 <Label className="text-xs font-semibold">{label}</Label>
@@ -202,7 +258,7 @@ export default function Profile() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Рівень активності</Label>
+            <Label className="text-xs font-semibold">{text('Рівень активності', 'Activity level')}</Label>
             <Select value={form.activity_level} onValueChange={(value) => update('activity_level', value)}>
               <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -212,15 +268,17 @@ export default function Profile() {
           </div>
 
           <div className="rounded-2xl border border-primary/15 bg-primary/5 p-3">
-            <Label className="text-xs font-semibold">Ціль визначається автоматично</Label>
+            <Label className="text-xs font-semibold">{text('Ціль визначається автоматично', 'Goal is calculated automatically')}</Label>
             <p className="mt-1 text-lg font-extrabold text-primary">{goalLabels[calculated.goal]}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {weight} кг зараз {'->'} {targetWeight} кг ціль. {goalHints[calculated.goal]}
+              {isEnglish
+                ? `${weight} kg now -> ${targetWeight} kg target. ${goalHints[calculated.goal]}`
+                : `${weight} кг зараз -> ${targetWeight} кг ціль. ${goalHints[calculated.goal]}`}
             </p>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Характер ШІ</Label>
+            <Label className="text-xs font-semibold">{text('Характер ШІ', 'AI personality')}</Label>
             <Select value={form.ai_personality} onValueChange={(value) => update('ai_personality', value)}>
               <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -232,25 +290,25 @@ export default function Profile() {
       </Card>
 
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-        <p className="mb-3 text-xs font-bold text-primary">Денна норма</p>
+        <p className="mb-3 text-xs font-bold text-primary">{text('Денна норма', 'Daily goal')}</p>
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-card p-3 text-center">
             <p className="text-2xl font-extrabold text-primary">{calculated.calories}</p>
-            <p className="text-[10px] text-muted-foreground">ккал</p>
+            <p className="text-[10px] text-muted-foreground">{text('ккал', 'kcal')}</p>
           </div>
           <div className="rounded-xl bg-card p-3 text-center">
             <p className="text-2xl font-extrabold">{calculated.water}</p>
-            <p className="text-[10px] text-muted-foreground">мл води</p>
+            <p className="text-[10px] text-muted-foreground">{text('мл води', 'ml water')}</p>
           </div>
         </div>
         <div className="mt-2 grid grid-cols-3 gap-2">
-          <div className="rounded-xl bg-card p-2.5 text-center"><p className="text-lg font-bold">{calculated.proteins} г</p><p className="text-[10px] text-muted-foreground">білки</p></div>
-          <div className="rounded-xl bg-card p-2.5 text-center"><p className="text-lg font-bold">{calculated.fats} г</p><p className="text-[10px] text-muted-foreground">жири</p></div>
-          <div className="rounded-xl bg-card p-2.5 text-center"><p className="text-lg font-bold">{calculated.carbs} г</p><p className="text-[10px] text-muted-foreground">вуглеводи</p></div>
+          <div className="rounded-xl bg-card p-2.5 text-center"><p className="text-lg font-bold">{calculated.proteins} {text('г', 'g')}</p><p className="text-[10px] text-muted-foreground">{text('білки', 'protein')}</p></div>
+          <div className="rounded-xl bg-card p-2.5 text-center"><p className="text-lg font-bold">{calculated.fats} {text('г', 'g')}</p><p className="text-[10px] text-muted-foreground">{text('жири', 'fats')}</p></div>
+          <div className="rounded-xl bg-card p-2.5 text-center"><p className="text-lg font-bold">{calculated.carbs} {text('г', 'g')}</p><p className="text-[10px] text-muted-foreground">{text('вуглеводи', 'carbs')}</p></div>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-2 text-center text-[10px] text-muted-foreground">
-          <div className="rounded-xl bg-card p-2">BMR: {calculated.bmr} ккал</div>
-          <div className="rounded-xl bg-card p-2">TDEE: {calculated.tdee} ккал</div>
+          <div className="rounded-xl bg-card p-2">BMR: {calculated.bmr} {text('ккал', 'kcal')}</div>
+          <div className="rounded-xl bg-card p-2">TDEE: {calculated.tdee} {text('ккал', 'kcal')}</div>
         </div>
       </motion.div>
 
@@ -262,10 +320,10 @@ export default function Profile() {
         onClick={() => {
           logout();
           queryClient.clear();
-          toast.success('Ви вийшли з профілю');
+          toast.success(text('Ви вийшли з профілю', 'You are logged out'));
         }}
       >
-        <LogOut className="mr-2 h-4 w-4" /> Вийти
+        <LogOut className="mr-2 h-4 w-4" /> {text('Вийти', 'Log out')}
       </Button>
     </div>
   );

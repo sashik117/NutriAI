@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Zap, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const defaultPresets = [
   { name: '☕ Кава з молоком', calories: 70, proteins: 3, fats: 3, carbs: 5 },
@@ -12,13 +13,24 @@ const defaultPresets = [
 ];
 
 export default function QuickPresets({ presets, onSelect, addingName }) {
+  const { isEnglish, text } = useLanguage();
   const items = presets?.length > 0 ? presets : defaultPresets;
+  const translatePreset = (name) => {
+    if (!isEnglish) return name;
+    return name
+      .replace('Кава з молоком', 'Coffee with milk')
+      .replace('2 яйця', '2 eggs')
+      .replace('Банан', 'Banana')
+      .replace('Салат овочевий', 'Vegetable salad')
+      .replace('Куряча грудка 150г', 'Chicken breast 150g')
+      .replace('Рис 100г', 'Rice 100g');
+  };
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 mb-1">
         <Zap className="w-4 h-4 text-secondary-foreground" />
-        <span className="text-xs font-semibold text-muted-foreground">Швидке додавання</span>
+        <span className="text-xs font-semibold text-muted-foreground">{text('Швидке додавання', 'Quick add')}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {items.map((preset, i) => {
@@ -40,11 +52,11 @@ export default function QuickPresets({ presets, onSelect, addingName }) {
                 {isAdding ? (
                   <>
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>{preset.name}</span>
+                    <span>{translatePreset(preset.name)}</span>
                   </>
                 ) : (
                   <>
-                    <span>{preset.name}</span>
+                    <span>{translatePreset(preset.name)}</span>
                     <span className="text-muted-foreground">{preset.calories}</span>
                   </>
                 )}

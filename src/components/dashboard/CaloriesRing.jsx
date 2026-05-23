@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/lib/LanguageContext';
 
 function ringStatus(current, goal) {
   const ratio = goal ? current / goal : 0;
@@ -44,6 +45,7 @@ function ringStatus(current, goal) {
 }
 
 export default function CaloriesRing({ current, goal }) {
+  const { isEnglish, text } = useLanguage();
   const size = 188;
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
@@ -105,12 +107,28 @@ export default function CaloriesRing({ current, goal }) {
         <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
           <span className="text-3xl font-extrabold">{status.mode === 'over' ? over : remaining}</span>
           <span className="text-xs font-semibold text-muted-foreground">
-            {status.mode === 'over' ? 'ккал перебір' : 'ккал залишилось'}
+            {status.mode === 'over' ? text('ккал перебір', 'kcal over') : text('ккал залишилось', 'kcal left')}
           </span>
           <span className="mt-1 text-[11px] font-bold" style={{ color: status.color }}>
-            {status.label}
+            {isEnglish
+              ? {
+                  over: 'Calories over',
+                  done: 'You are on track! ✨',
+                  mid: 'A little more to go',
+                  low: 'Critical under-eating',
+                }[status.mode]
+              : status.label}
           </span>
-          <span className="text-[10px] text-muted-foreground">{status.helper}</span>
+          <span className="text-[10px] text-muted-foreground">
+            {isEnglish
+              ? {
+                  over: 'Treat zone',
+                  done: 'Perfect balance',
+                  mid: 'Middle zone',
+                  low: 'Time to eat',
+                }[status.mode]
+              : status.helper}
+          </span>
         </div>
       </motion.div>
     </div>

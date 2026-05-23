@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function SplashScreen() {
+  const { text } = useLanguage();
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function SplashScreen() {
             </div>
             <div className="text-center">
               <h1 className="text-3xl font-extrabold tracking-tight text-white">NutriAI</h1>
-              <p className="mt-1 text-sm font-medium text-white/75">КБЖУ трекер з ШІ</p>
+              <p className="mt-1 text-sm font-medium text-white/75">{text('КБЖУ трекер з ШІ', 'AI nutrition tracker')}</p>
             </div>
           </motion.div>
           <motion.div

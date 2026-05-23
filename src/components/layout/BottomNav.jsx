@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, MessageSquarePlus, Droplets, Trophy, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { haptic } from '@/lib/haptic';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Головна' },
@@ -13,6 +14,7 @@ const navItems = [
 
 export default function BottomNav() {
   const location = useLocation();
+  const { isEnglish } = useLanguage();
 
   return (
     <nav
@@ -22,6 +24,14 @@ export default function BottomNav() {
       <div className="max-w-lg mx-auto flex items-center justify-around py-1.5 px-2">
         {navItems.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path;
+          const englishLabels = {
+            'Головна': 'Home',
+            'Додати': 'Add',
+            'Вода': 'Water',
+            'Нагороди': 'Rewards',
+            'Профіль': 'Profile',
+          };
+          const visibleLabel = isEnglish ? englishLabels[label] : label;
           return (
             <Link
               key={path}
@@ -42,7 +52,7 @@ export default function BottomNav() {
                 <Icon className={cn('w-5 h-5', isActive && 'stroke-[2.5px]')} />
               </div>
               <span className={cn('text-[10px] font-semibold', isActive && 'text-primary')}>
-                {label}
+                {visibleLabel}
               </span>
             </Link>
           );

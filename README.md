@@ -11,7 +11,9 @@ AI-powered nutrition tracker built as a fullstack portfolio project with food lo
 
 NutriAI is currently a web application with a mobile-first interface. The next product step is a native mobile app version, so the UI is already designed around phone screens, bottom navigation, touch-friendly controls, and PWA-style behavior.
 
-![NutriAI mobile dashboard](screenshots/mobile-dashboard.png)
+<p align="center">
+  <img src="screenshots/mobile-dashboard.png" alt="NutriAI mobile dashboard" width="280" />
+</p>
 
 ## ✨ Features
 
@@ -64,27 +66,27 @@ The main goal is to make nutrition tracking feel faster, softer, and more person
 
 ### Dashboard
 
-![Mobile dashboard](screenshots/mobile-dashboard.png)
+<img src="screenshots/mobile-dashboard.png" alt="Mobile dashboard" width="260" />
 
 ### Add Food
 
-![Mobile add food](screenshots/mobile-add-food.png)
+<img src="screenshots/mobile-add-food.png" alt="Mobile add food" width="260" />
 
 ### Water Tracker
 
-![Mobile water tracker](screenshots/mobile-water.png)
+<img src="screenshots/mobile-water.png" alt="Mobile water tracker" width="260" />
 
 ### Rewards
 
-![Mobile rewards](screenshots/mobile-rewards.png)
+<img src="screenshots/mobile-rewards.png" alt="Mobile rewards" width="260" />
 
 ### Profile
 
-![Mobile profile](screenshots/mobile-profile.png)
+<img src="screenshots/mobile-profile.png" alt="Mobile profile" width="260" />
 
 ### AI Meal Plan
 
-![Mobile AI meal plan](screenshots/mobile-meal-plan.png)
+<img src="screenshots/mobile-meal-plan.png" alt="Mobile AI meal plan" width="260" />
 
 ## 🏗️ Project Structure
 

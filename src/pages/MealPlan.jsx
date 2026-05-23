@@ -6,6 +6,7 @@ import { ArrowRight, CalendarDays, Check, Loader2, Plus, Sparkles } from 'lucide
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ShoppingList from '../components/meal-plan/ShoppingList';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const PLAN_STORAGE_KEY = 'nutriai_weekly_meal_plan';
 const PLAN_CACHE_PREFIX = 'nutriai_weekly_meal_plan_mode_';
@@ -13,6 +14,11 @@ const GENERATION_STEPS = [
   'ШІ аналізує ваші цілі...',
   'Складаю найкращий раціон...',
   'Підбираю продукти з магазинів України...',
+];
+const GENERATION_STEPS_EN = [
+  'AI is analyzing your goals...',
+  'Building the best meal plan...',
+  'Choosing realistic supermarket products...',
 ];
 const WEEK_DAYS = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', 'Пʼятниця', 'Субота', 'Неділя'];
 const PLAN_MODES = [
@@ -41,6 +47,12 @@ const MEAL_SLOTS = [
   { key: 'lunch', label: 'Обід' },
   { key: 'dinner', label: 'Вечеря' },
 ];
+const MEAL_SLOT_LABELS_EN = {
+  breakfast: 'Breakfast',
+  snack: 'Snack',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+};
 const SLOT_ALIASES = {
   breakfast: 'breakfast',
   сніданок: 'breakfast',
@@ -146,6 +158,66 @@ function cleanText(value, fallback = '') {
     .replace(/,\s*/g, ', ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function displayMealTitle(title, isEnglish) {
+  if (!isEnglish) return title;
+  const cleaned = cleanText(title).replace(/\s+\d+$/, '');
+  const map = {
+    'Вівсянка з ягодами': 'Oatmeal with berries',
+    'Вівсянка з фруктами': 'Oatmeal with fruit',
+    'Вівсянка з бананом': 'Oatmeal with banana',
+    'Йогурт з фруктами': 'Yogurt with fruit',
+    'Йогурт з горіхами': 'Yogurt with nuts',
+    'Курка з гречкою': 'Chicken with buckwheat',
+    'Риба з овочами': 'Fish with vegetables',
+    'Хумус з овочами': 'Hummus with vegetables',
+    'Сочевиця з булгуром': 'Lentils with bulgur',
+    'Тофу з кіноа': 'Tofu with quinoa',
+    'Сир з ягодами': 'Cottage cheese with berries',
+    'Яблуко та кефір': 'Apple and kefir',
+    'Індичка з рисом': 'Turkey with rice',
+    'Салат з тунцем': 'Tuna salad',
+  };
+  return map[cleaned] || cleaned
+    .replace(/Вівсянка/g, 'Oatmeal')
+    .replace(/Курка/g, 'Chicken')
+    .replace(/Риба/g, 'Fish')
+    .replace(/овочами/g, 'vegetables')
+    .replace(/гречкою/g, 'buckwheat');
+}
+
+function displayIngredientName(name, isEnglish) {
+  if (!isEnglish) return name;
+  const map = {
+    'Вівсяні пластівці': 'Oats',
+    'Ягоди': 'Berries',
+    'Молоко': 'Milk',
+    'Банан': 'Banana',
+    'Йогурт': 'Yogurt',
+    'Фрукти або ягоди': 'Fruit or berries',
+    'Куряче філе': 'Chicken breast',
+    'Гречка': 'Buckwheat',
+    'Овочі': 'Vegetables',
+    'Риба': 'Fish',
+    'Тунець': 'Tuna',
+    'Лосось': 'Salmon',
+    'Хумус': 'Hummus',
+    'Сочевиця': 'Lentils',
+    'Булгур': 'Bulgur',
+    'Тофу': 'Tofu',
+    'Кіноа': 'Quinoa',
+    'Сир кисломолочний': 'Cottage cheese',
+    'Яблуко': 'Apple',
+    'Кефір': 'Kefir',
+    'Індичка': 'Turkey',
+  };
+  return map[name] || name;
+}
+
+function displayUnit(unit, isEnglish) {
+  if (!isEnglish) return unit;
+  return unit === 'г' ? 'g' : unit === 'мл' ? 'ml' : unit === 'шт' ? 'pcs' : unit;
 }
 
 function parseJsonish(value) {
@@ -471,6 +543,7 @@ function MealPlanSkeleton({ status }) {
 }
 
 export default function MealPlan() {
+  const { isEnglish, text } = useLanguage();
   const [plan, setPlan] = useState(null);
   const [planId, setPlanId] = useState(null);
   const [planMode, setPlanMode] = useState('classic');
@@ -503,7 +576,9 @@ export default function MealPlan() {
   const profile = profiles[0];
   const selectedDay = plan?.days?.[selectedDayIndex];
   const activeMode = PLAN_MODES.find((mode) => mode.key === planMode) || PLAN_MODES[0];
-  const generationStatus = GENERATION_STEPS[generationStep % GENERATION_STEPS.length];
+  const generationStatus = (isEnglish ? GENERATION_STEPS_EN : GENERATION_STEPS)[generationStep % GENERATION_STEPS.length];
+  const visibleModeLabel = (mode) => (isEnglish ? { classic: 'Classic', light: 'Light', plant: 'Plant-based' }[mode.key] : mode.label);
+  const visibleDayName = (day, index) => (isEnglish ? `Day ${index + 1}` : day.day);
 
   const recentFoods = useMemo(
     () => [...new Set(recentLogs.slice(0, 20).flatMap((log) => log.items?.map((item) => item.name) || []))].slice(0, 10),
@@ -602,7 +677,7 @@ export default function MealPlan() {
       setSelectedMeals(normalized.selectedMeals || cached.selectedMeals || []);
       setShoppingMeals(null);
       setSelectedDayIndex(Math.min(Math.max(Number(cached.selectedDayIndex) || 0, 0), 6));
-      toast.success(`${mode.label} план відкрито з кешу`);
+      toast.success(text(`${mode.label} план відкрито з кешу`, `${visibleModeLabel(mode)} plan opened from cache`));
       return;
     }
     setGenerating(true);
@@ -635,12 +710,12 @@ export default function MealPlan() {
       const normalized = normalizePlan({ ...result, mode: mode.key, generatedAt: new Date().toISOString(), selectedMeals: [] }, mode.key);
       setPlan(normalized);
       const saved = await persistPlan(normalized, 0, planId, []);
-      toast.success(saved ? `${mode.label} план готовий і збережений` : `${mode.label} план готовий`);
+      toast.success(saved ? text(`${mode.label} план готовий і збережений`, `${visibleModeLabel(mode)} plan is ready and saved`) : text(`${mode.label} план готовий`, `${visibleModeLabel(mode)} plan is ready`));
     } catch (error) {
       const fallback = normalizePlan({ mode: mode.key, selectedMeals: [] }, mode.key);
       setPlan(fallback);
       await persistPlan(fallback, 0, planId, []);
-      toast.error(error.message || 'Не вдалося скласти план, показую базовий варіант');
+      toast.error(error.message || text('Не вдалося скласти план, показую базовий варіант', 'Could not generate the plan, showing a basic version'));
     } finally {
       setGenerating(false);
     }
@@ -680,9 +755,9 @@ export default function MealPlan() {
       setSelectedMeals(nextSelectedMeals);
       setShoppingMeals(null);
       await persistPlan(nextPlan, selectedDayIndex, planId, nextSelectedMeals);
-      toast.success('Новий варіант дня готовий');
+      toast.success(text('Новий варіант дня готовий', 'New day option is ready'));
     } catch (error) {
-      toast.error(error.message || 'Не вдалося оновити цей день');
+      toast.error(error.message || text('Не вдалося оновити цей день', 'Could not refresh this day'));
     } finally {
       setRegeneratingDay(false);
     }
@@ -690,7 +765,7 @@ export default function MealPlan() {
 
   const makeShoppingList = (meals = selectedMealsForPlan) => {
     if (!meals.length) {
-      toast.error('Спочатку вибери страви галочкою');
+      toast.error(text('Спочатку вибери страви галочкою', 'Select meals with a checkmark first'));
       return;
     }
     setShoppingMeals(meals);
@@ -706,8 +781,8 @@ export default function MealPlan() {
   return (
     <div className="space-y-5 pb-8 pt-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-extrabold">План харчування</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">Gemini генерує раціон під вибраний режим</p>
+        <h1 className="text-2xl font-extrabold">{text('План харчування', 'Meal plan')}</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">{text('Gemini генерує раціон під вибраний режим', 'Gemini builds meals for the selected style')}</p>
       </motion.div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -721,7 +796,7 @@ export default function MealPlan() {
             onClick={() => generatePlan(mode.key)}
             disabled={generating}
           >
-            {mode.label}
+            {visibleModeLabel(mode)}
           </button>
         ))}
       </div>
@@ -732,27 +807,27 @@ export default function MealPlan() {
         <div className="space-y-4">
           {profile && (
             <div className="rounded-2xl border border-border bg-card p-4">
-              <p className="text-xs font-bold text-muted-foreground">Ваші цілі на день</p>
+              <p className="text-xs font-bold text-muted-foreground">{text('Ваші цілі на день', 'Your daily goals')}</p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                <p>{profile.goal === 'lose' ? 'Схуднення' : profile.goal === 'gain' ? 'Набір маси' : 'Підтримка'}</p>
-                <p>{profile.daily_calories || 2000} ккал</p>
-                <p>Б: {profile.daily_proteins || 150} г</p>
-                <p>Ж: {profile.daily_fats || 67} г</p>
-                <p>В: {profile.daily_carbs || 200} г</p>
+                <p>{profile.goal === 'lose' ? text('Схуднення', 'Weight loss') : profile.goal === 'gain' ? text('Набір маси', 'Muscle gain') : text('Підтримка', 'Maintenance')}</p>
+                <p>{profile.daily_calories || 2000} {text('ккал', 'kcal')}</p>
+                <p>{text('Б', 'P')}: {profile.daily_proteins || 150} {text('г', 'g')}</p>
+                <p>{text('Ж', 'F')}: {profile.daily_fats || 67} {text('г', 'g')}</p>
+                <p>{text('В', 'C')}: {profile.daily_carbs || 200} {text('г', 'g')}</p>
               </div>
             </div>
           )}
 
           <Button className="h-12 w-full rounded-xl text-base" onClick={() => generatePlan(planMode)} disabled={generating}>
             {generating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
-            {generating ? 'Складаю план...' : 'Згенерувати план'}
+            {generating ? text('Складаю план...', 'Building plan...') : text('Згенерувати план', 'Generate plan')}
           </Button>
         </div>
       ) : (
         <div className="space-y-4">
           <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={() => generatePlan(planMode, true)} disabled={generating}>
             {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            Оновити план {activeMode.label}
+            {text('Оновити план', 'Refresh plan')} {visibleModeLabel(activeMode)}
           </Button>
 
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
@@ -766,8 +841,8 @@ export default function MealPlan() {
                 }`}
               >
                 <p className="text-[11px] font-bold text-muted-foreground">{index + 1}</p>
-                <p className="truncate text-sm font-extrabold">{day.day}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{day.total_calories} ккал</p>
+                <p className="truncate text-sm font-extrabold">{visibleDayName(day, index)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{day.total_calories} {text('ккал', 'kcal')}</p>
               </button>
             ))}
           </div>
@@ -779,15 +854,15 @@ export default function MealPlan() {
                   <div>
                     <p className="flex items-center gap-2 text-sm font-extrabold">
                       <CalendarDays className="h-4 w-4 text-primary" />
-                      {selectedDay.day}
+                      {visibleDayName(selectedDay, selectedDayIndex)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {selectedDay.total_calories} ккал · Б {selectedDay.total_proteins} г · Ж {selectedDay.total_fats} г · В{' '}
-                      {selectedDay.total_carbs} г
+                      {selectedDay.total_calories} {text('ккал', 'kcal')} · {text('Б', 'P')} {selectedDay.total_proteins} {text('г', 'g')} · {text('Ж', 'F')} {selectedDay.total_fats} {text('г', 'g')} · {text('В', 'C')}{' '}
+                      {selectedDay.total_carbs} {text('г', 'g')}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
-                    <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{selectedMealsForDay.length} вибрано</span>
+                    <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{selectedMealsForDay.length} {text('вибрано', 'selected')}</span>
                     <Button
                       size="sm"
                       variant="outline"
@@ -796,7 +871,7 @@ export default function MealPlan() {
                       disabled={regeneratingDay}
                     >
                       {regeneratingDay ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />}
-                      Інший день
+                      {text('Інший день', 'Another day')}
                     </Button>
                   </div>
                 </div>
@@ -806,32 +881,33 @@ export default function MealPlan() {
                     const slot = MEAL_SLOTS.find((item) => item.key === meal.slot) || MEAL_SLOTS[1];
                     const selected = selectedMeals.includes(meal.id);
                     const descriptionOpen = Boolean(openDescriptions[meal.id]);
+                    const slotLabel = isEnglish ? MEAL_SLOT_LABELS_EN[slot.key] : slot.label;
 
                     return (
                       <div key={meal.id} className={`rounded-2xl p-3 transition ${selected ? 'bg-primary/10 ring-1 ring-primary/30' : 'bg-muted/35'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-extrabold uppercase tracking-wide text-muted-foreground">{slot.label}</p>
+                            <p className="text-[11px] font-extrabold uppercase tracking-wide text-muted-foreground">{slotLabel}</p>
                             <button
                               type="button"
                               className="mt-1 text-left text-sm font-bold"
                               onClick={() => setOpenDescriptions((current) => ({ ...current, [meal.id]: !current[meal.id] }))}
                             >
-                              {meal.title}
+                              {displayMealTitle(meal.title, isEnglish)}
                             </button>
                             {descriptionOpen && (
                               <div className="mt-2 rounded-xl bg-background p-3 text-xs leading-relaxed text-muted-foreground">
-                                <p>{meal.description}</p>
-                                <p className="mt-2 font-semibold text-foreground">Склад</p>
-                                <p>{meal.ingredients.map((item) => [item.name, item.amount, item.unit].filter(Boolean).join(' ')).join(', ')}</p>
+                                <p>{isEnglish ? 'Balanced meal matched to your current goals.' : meal.description}</p>
+                                <p className="mt-2 font-semibold text-foreground">{text('Склад', 'Ingredients')}</p>
+                                <p>{meal.ingredients.map((item) => [displayIngredientName(item.name, isEnglish), item.amount, displayUnit(item.unit, isEnglish)].filter(Boolean).join(' ')).join(', ')}</p>
                               </div>
                             )}
                             <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                              <span className="rounded-full bg-primary/10 px-2 py-1 font-bold text-primary">{meal.calories} ккал</span>
-                              <span className="rounded-full bg-sky-100 px-2 py-1 text-sky-700">Б: {meal.proteins} г</span>
-                              <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">Ж: {meal.fats} г</span>
-                              <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">В: {meal.carbs} г</span>
-                              <span className="rounded-full bg-background px-2 py-1 text-muted-foreground">{meal.grams} г</span>
+                              <span className="rounded-full bg-primary/10 px-2 py-1 font-bold text-primary">{meal.calories} {text('ккал', 'kcal')}</span>
+                              <span className="rounded-full bg-sky-100 px-2 py-1 text-sky-700">{text('Б', 'P')}: {meal.proteins} {text('г', 'g')}</span>
+                              <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">{text('Ж', 'F')}: {meal.fats} {text('г', 'g')}</span>
+                              <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">{text('В', 'C')}: {meal.carbs} {text('г', 'g')}</span>
+                              <span className="rounded-full bg-background px-2 py-1 text-muted-foreground">{meal.grams} {text('г', 'g')}</span>
                             </div>
                           </div>
                           <div className="flex shrink-0 flex-col gap-2">
@@ -840,7 +916,7 @@ export default function MealPlan() {
                               variant={selected ? 'default' : 'outline'}
                               className="h-9 w-9 rounded-full"
                               onClick={() => toggleMeal(meal)}
-                              title={selected ? 'Вибрано' : 'Вибрати страву'}
+                              title={selected ? text('Вибрано', 'Selected') : text('Вибрати страву', 'Select meal')}
                             >
                               {selected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                             </Button>
@@ -850,7 +926,7 @@ export default function MealPlan() {
                                 variant="outline"
                                 className="h-9 w-9 rounded-full"
                                 onClick={() => focusMealProducts(meal)}
-                                title="Продукти для цієї страви"
+                                title={text('Продукти для цієї страви', 'Products for this meal')}
                               >
                                 <ArrowRight className="h-4 w-4" />
                               </Button>

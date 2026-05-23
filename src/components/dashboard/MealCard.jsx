@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Utensils, Coffee, Sun, Moon, Cookie, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const mealIcons = {
   breakfast: Coffee,
@@ -26,7 +27,11 @@ const formatItem = (item) => {
 };
 
 export default function MealCard({ log, index, onEdit }) {
+  const { isEnglish, text } = useLanguage();
   const Icon = mealIcons[log.meal_type] || Utensils;
+  const labels = isEnglish
+    ? { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack', snack1: 'Snack 1', snack2: 'Snack 2', snack3: 'Snack 3' }
+    : mealLabels;
 
   return (
     <motion.div
@@ -41,12 +46,12 @@ export default function MealCard({ log, index, onEdit }) {
         <Icon className="h-5 w-5 text-primary" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{mealLabels[log.meal_type] || log.meal_type}</p>
+        <p className="truncate text-sm font-semibold">{labels[log.meal_type] || log.meal_type}</p>
         <p className="truncate text-xs text-muted-foreground">{log.items?.map(formatItem).join(', ') || log.description}</p>
       </div>
       <div className="shrink-0 text-right">
         <p className="text-sm font-bold">{log.total_calories}</p>
-        <p className="text-[10px] text-muted-foreground">ккал</p>
+        <p className="text-[10px] text-muted-foreground">{text('ккал', 'kcal')}</p>
       </div>
       {onEdit && (
         <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-full text-muted-foreground" onClick={() => onEdit(log)}>

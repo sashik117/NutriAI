@@ -5,6 +5,7 @@ import { Camera, ImagePlus, Loader2, ScanLine, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { cleanFoodText, repairNutritionItem } from '@/lib/nutritionFallback';
+import { useLanguage } from '@/lib/LanguageContext';
 
 function dataUrlToFile(dataUrl, filename) {
   const [meta, content] = dataUrl.split(',');
@@ -126,6 +127,7 @@ ${force ? 'ФОРС-РЕЖИМ: поверни приблизний обʼєкт
 }
 
 export default function LiveCameraAnalyzer({ onResult }) {
+  const { text } = useLanguage();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -271,7 +273,7 @@ export default function LiveCameraAnalyzer({ onResult }) {
 
       <Button type="button" variant="outline" className="h-12 w-full rounded-xl text-xs gap-2" onClick={openScanner}>
         <ScanLine className="h-4 w-4 text-primary" />
-        Сканер тарілки
+        {text('Сканер тарілки', 'Plate scanner')}
       </Button>
 
       <AnimatePresence>
@@ -292,8 +294,8 @@ export default function LiveCameraAnalyzer({ onResult }) {
             >
               <div className="flex items-center justify-between border-b border-border p-4">
                 <div>
-                  <p className="text-sm font-extrabold">Сканер тарілки</p>
-                  <p className="text-xs text-muted-foreground">Кадр має бути чіткий: текстура, соус і порція в центрі</p>
+                  <p className="text-sm font-extrabold">{text('Сканер тарілки', 'Plate scanner')}</p>
+                  <p className="text-xs text-muted-foreground">{text('Кадр має бути чіткий: текстура, соус і порція в центрі', 'Keep the frame clear: texture, sauce, and portion in the center')}</p>
                 </div>
                 <button className="rounded-full p-2 text-muted-foreground hover:bg-muted" onClick={close}>
                   <X className="h-4 w-4" />
@@ -316,13 +318,13 @@ export default function LiveCameraAnalyzer({ onResult }) {
                 {!cameraActive && !preview && (
                   <div className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center text-white/70">
                     <Camera className="h-10 w-10" />
-                    <p className="text-sm">Наведіть камеру на тарілку або завантажте фото</p>
+                    <p className="text-sm">{text('Наведіть камеру на тарілку або завантажте фото', 'Point the camera at your plate or upload a photo')}</p>
                   </div>
                 )}
                 {analyzing && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 text-white">
                     <Loader2 className="h-7 w-7 animate-spin" />
-                    <p className="text-sm font-medium">Gemini вдивляється в деталі...</p>
+                    <p className="text-sm font-medium">{text('Gemini вдивляється в деталі...', 'Gemini is checking the details...')}</p>
                   </div>
                 )}
               </div>
@@ -343,11 +345,11 @@ export default function LiveCameraAnalyzer({ onResult }) {
               <div className="grid grid-cols-2 gap-2 p-4">
                 <Button type="button" className="h-11 rounded-2xl gap-2 bg-emerald-500 text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-600" onClick={capturePhoto} disabled={!cameraActive || analyzing}>
                   <Camera className="h-4 w-4" />
-                  Зняти
+                  {text('Зняти', 'Capture')}
                 </Button>
                 <Button type="button" variant="outline" className="h-11 rounded-2xl gap-2 border-sky-200 bg-sky-50 text-sky-700 shadow-sm hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300" onClick={() => fileInputRef.current?.click()} disabled={analyzing}>
                   {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-                  Галерея
+                  {text('Галерея', 'Gallery')}
                 </Button>
               </div>
             </motion.div>

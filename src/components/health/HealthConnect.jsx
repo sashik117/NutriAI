@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Footprints, Flame, RefreshCw, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/lib/LanguageContext';
 
 // Health Connect / HealthKit bridge
 // In a PWA: we use Web Bluetooth / Web NFC workarounds or manual entry.
@@ -31,6 +32,7 @@ function stepsToCalories(steps, weightKg = 70) {
 }
 
 export default function HealthConnect({ onActivityUpdate, weightKg = 70 }) {
+  const { text } = useLanguage();
   const [connected, setConnected] = useState(false);
   const [activity, setActivity] = useState(null);
   const [manualSteps, setManualSteps] = useState('');
@@ -106,16 +108,16 @@ export default function HealthConnect({ onActivityUpdate, weightKg = 70 }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-green-600">
-            {activity.source === 'manual' ? '📲 Активність (вручну)' : '✅ Health Connect'}
+            {activity.source === 'manual' ? text('📲 Активність (вручну)', '📲 Activity (manual)') : '✅ Health Connect'}
           </p>
           <div className="flex gap-3 mt-0.5">
             <span className="text-xs flex items-center gap-1">
               <Footprints className="w-3 h-3 text-muted-foreground" />
-              {activity.steps?.toLocaleString()} кроків
+              {activity.steps?.toLocaleString()} {text('кроків', 'steps')}
             </span>
             <span className="text-xs flex items-center gap-1 font-semibold text-primary">
               <Flame className="w-3 h-3" />
-              +{activity.active_calories} ккал до норми
+              +{activity.active_calories} {text('ккал до норми', 'kcal to your goal')}
             </span>
           </div>
         </div>
@@ -134,7 +136,7 @@ export default function HealthConnect({ onActivityUpdate, weightKg = 70 }) {
         onClick={handleConnect}
       >
         <Activity className="w-4 h-4 text-green-500" />
-        Підключити активність (Health Connect / кроки)
+        {text('Підключити активність (Health Connect / кроки)', 'Connect activity (Health Connect / steps)')}
       </Button>
 
       {showManual && (
@@ -145,12 +147,12 @@ export default function HealthConnect({ onActivityUpdate, weightKg = 70 }) {
         >
           <div className="flex items-start gap-2 text-xs text-muted-foreground">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>Health Connect недоступний у браузері. Введіть кількість кроків вручну або встановіть нативний додаток.</span>
+            <span>{text('Health Connect недоступний у браузері. Введіть кількість кроків вручну або встановіть нативний додаток.', 'Health Connect is not available in the browser. Enter steps manually or install the native app later.')}</span>
           </div>
           <div className="flex gap-2">
             <input
               type="number"
-              placeholder="Кроки за сьогодні"
+              placeholder={text('Кроки за сьогодні', 'Steps today')}
               value={manualSteps}
               onChange={e => setManualSteps(e.target.value)}
               className="flex-1 h-9 rounded-xl border border-input bg-background px-3 text-sm"
@@ -160,7 +162,7 @@ export default function HealthConnect({ onActivityUpdate, weightKg = 70 }) {
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            ~{stepsToCalories(parseInt(manualSteps) || 0, weightKg)} ккал буде додано до денної норми
+            ~{stepsToCalories(parseInt(manualSteps) || 0, weightKg)} {text('ккал буде додано до денної норми', 'kcal will be added to today goal')}
           </p>
         </motion.div>
       )}

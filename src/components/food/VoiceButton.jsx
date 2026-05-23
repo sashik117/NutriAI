@@ -3,8 +3,10 @@ import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function VoiceButton({ onTranscribed }) {
+  const { text } = useLanguage();
   const { isRecording, isTranscribing, startRecording, stopRecording, transcribeAudio } = useVoiceRecorder();
 
   const handleClick = async () => {
@@ -64,7 +66,7 @@ export default function VoiceButton({ onTranscribed }) {
       )}
 
       <span className="text-[10px] text-muted-foreground font-medium">
-        {isTranscribing ? 'Розпізнаю...' : isRecording ? 'Зупинити' : 'Голос'}
+        {isTranscribing ? text('Розпізнаю...', 'Transcribing...') : isRecording ? text('Зупинити', 'Stop') : text('Голос', 'Voice')}
       </span>
     </div>
   );
