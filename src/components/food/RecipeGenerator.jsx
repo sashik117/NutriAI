@@ -62,10 +62,12 @@ export default function RecipeGenerator({ remainingCalories = 0 }) {
     setLoading(true);
     try {
       const target = Math.max(200, Math.round(remainingCalories || 0));
+      const seed = Math.random().toString(36).slice(2, 8);
       const result = await nutriApi.integrations.Core.InvokeLLM({
         model: 'gemini_3_flash',
         prompt: isEnglish
           ? `Suggest one simple meal in English for about ${target} kcal.
+Unique variant seed: ${seed}.
 Return only clean JSON. No markdown, no headings, no #, no *, no bullet characters.
 Keep it realistic and balanced, not extremely fatty.
 Fields: title, serving, ingredients array, calories, proteins, fats, carbs, note.`

@@ -157,6 +157,143 @@ function parseSort(sort) {
   return `${column} ${descending ? 'DESC' : 'ASC'}`;
 }
 
+function pickFallback(items) {
+  return items[crypto.randomInt(0, items.length)];
+}
+
+function targetCaloriesFromPrompt(prompt, fallback = 520) {
+  const match = String(prompt || '').match(/\b(\d{3,4})\b/);
+  const value = match ? Number(match[1]) : fallback;
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(Math.max(value, 250), 1200);
+}
+
+function scaleMacro(value, target, base = 500) {
+  return Math.max(1, Math.round((value * target) / base));
+}
+
+let lastChallengeFallbackTitle = '';
+
+function createRecipeFallback(prompt = '') {
+  const isEnglish = /english/i.test(prompt);
+  const target = targetCaloriesFromPrompt(prompt);
+  const ukRecipes = [
+    {
+      title: 'Боул з куркою, гречкою та овочами',
+      serving: '1 порція',
+      ingredients: ['Куряче філе - 120 г', 'Гречка варена - 150 г', 'Огірок - 80 г', 'Помідори чері - 80 г', 'Оливкова олія - 8 г'],
+      proteins: 38,
+      fats: 16,
+      carbs: 52,
+      note: 'Збалансована страва з нормальним білком і повільними вуглеводами.',
+    },
+    {
+      title: 'Омлет із сиром та тостом',
+      serving: '1 порція',
+      ingredients: ['Яйця - 2 шт', 'Сир кисломолочний - 120 г', 'Цільнозерновий хліб - 60 г', 'Авокадо - 50 г', 'Зелень - 10 г'],
+      proteins: 34,
+      fats: 22,
+      carbs: 36,
+      note: 'Добре підходить для сніданку або швидкого обіду.',
+    },
+    {
+      title: 'Паста з тунцем і томатами',
+      serving: '1 порція',
+      ingredients: ['Паста варена - 170 г', 'Тунець у власному соку - 100 г', 'Томати - 120 г', 'Пармезан - 12 г', 'Оливкова олія - 6 г'],
+      proteins: 36,
+      fats: 14,
+      carbs: 58,
+      note: 'Ситний варіант без зайвого жиру, але з хорошою кількістю білка.',
+    },
+    {
+      title: 'Йогуртовий боул з бананом і горіхами',
+      serving: '1 порція',
+      ingredients: ['Грецький йогурт - 220 г', 'Банан - 100 г', 'Вівсянка - 35 г', 'Горіхи - 15 г', 'Ягоди - 60 г'],
+      proteins: 28,
+      fats: 15,
+      carbs: 62,
+      note: 'М’який солодкий варіант, коли хочеться чогось простого.',
+    },
+  ];
+  const enRecipes = [
+    {
+      title: 'Chicken quinoa bowl',
+      serving: '1 serving',
+      ingredients: ['Chicken breast - 120 g', 'Cooked quinoa - 140 g', 'Cucumber - 80 g', 'Cherry tomatoes - 80 g', 'Olive oil - 8 g'],
+      proteins: 39,
+      fats: 15,
+      carbs: 50,
+      note: 'Balanced, high-protein and easy to prepare.',
+    },
+    {
+      title: 'Greek yogurt banana bowl',
+      serving: '1 serving',
+      ingredients: ['Greek yogurt - 220 g', 'Banana - 100 g', 'Oats - 35 g', 'Nuts - 15 g', 'Berries - 60 g'],
+      proteins: 28,
+      fats: 15,
+      carbs: 62,
+      note: 'A quick sweet meal with solid protein.',
+    },
+  ];
+  const recipe = pickFallback(isEnglish ? enRecipes : ukRecipes);
+  return {
+    ...recipe,
+    calories: target,
+    proteins: scaleMacro(recipe.proteins, target),
+    fats: scaleMacro(recipe.fats, target),
+    carbs: scaleMacro(recipe.carbs, target),
+  };
+}
+
+function createChallengeFallback(prompt = '') {
+  const isEnglish = /english/i.test(prompt);
+  const ukChallenges = [
+    {
+      title: 'Білковий тиждень',
+      description: 'Мета - додати білок у кожен основний прийом їжі без різких обмежень.',
+      emoji: '💪',
+      tasks: ['Додати білок у сніданок', 'Випити норму води', 'Обрати одну овочеву страву', 'Записати всі перекуси', 'Підбити підсумок дня'],
+    },
+    {
+      title: 'Тиждень рівної енергії',
+      description: 'Фокус на стабільному харчуванні, воді та без хаотичних пропусків їжі.',
+      emoji: '⚡',
+      tasks: ['Не пропустити сніданок', 'Додати овочі до обіду', 'Випити першу склянку води до кави', 'Зробити легку вечерю', 'Зберегти серію записів'],
+    },
+    {
+      title: 'М’який контроль КБЖУ',
+      description: 'Тижневий виклик без стресу: бачити цифри і спокійно коригувати день.',
+      emoji: '🎯',
+      tasks: ['Записати перший прийом їжі', 'Перевірити залишок калорій', 'Добрати білок у другій половині дня', 'Додати 20 хвилин руху', 'Не забути воду'],
+    },
+    {
+      title: 'Розумні перекуси',
+      description: 'Ціль - зробити перекуси кориснішими і не губити прогрес між основними прийомами.',
+      emoji: '🥜',
+      tasks: ['Підготувати один білковий перекус', 'Замінити випадкову солодкість на фрукт', 'Записати напій або воду', 'Додати горіхи або йогурт у план', 'Перевірити баланс ввечері'],
+    },
+  ];
+  const enChallenges = [
+    {
+      title: 'Protein focus week',
+      description: 'Add a clear protein source to every main meal without strict dieting.',
+      emoji: '💪',
+      tasks: ['Add protein to breakfast', 'Hit the water goal', 'Choose one veggie-rich meal', 'Log every snack', 'Review the day'],
+    },
+    {
+      title: 'Steady energy week',
+      description: 'Keep meals consistent, hydration visible, and avoid chaotic gaps.',
+      emoji: '⚡',
+      tasks: ['Do not skip breakfast', 'Add vegetables to lunch', 'Drink water before coffee', 'Keep dinner light', 'Maintain the logging streak'],
+    },
+  ];
+  const variants = isEnglish ? enChallenges : ukChallenges;
+  const available = variants.filter((item) => item.title !== lastChallengeFallbackTitle);
+  const challenge = pickFallback(available.length ? available : variants);
+  lastChallengeFallbackTitle = challenge.title;
+  return challenge;
+}
+
 function createFallbackFromSchema(schema, prompt = '') {
   const props = schema?.properties || {};
 
@@ -190,13 +327,12 @@ function createFallbackFromSchema(schema, prompt = '') {
     };
   }
 
+  if (props.title && props.ingredients && props.calories) {
+    return createRecipeFallback(prompt);
+  }
+
   if (props.title && props.tasks) {
-    return {
-      title: 'Тиждень стабільності',
-      description: 'Маленький виклик для рівного прогресу.',
-      emoji: '🎯',
-      tasks: ['Записувати кожен прийом їжі', 'Випивати норму води', 'Додати білок у кожен основний прийом', 'Зробити 20 хвилин руху', 'Підбити підсумок дня'],
-    };
+    return createChallengeFallback(prompt);
   }
 
   if (props.name && props.brand) {
@@ -419,7 +555,7 @@ async function invokeGemini(payload) {
     : '';
   const parts = [
     {
-      text: `${payload.prompt || ''}${nutritionInstructions}${wantsJson ? '\n\nReturn only valid JSON matching the requested schema.' : ''}`,
+      text: `${payload.prompt || ''}\n\nUnique response seed: ${crypto.randomUUID()}.${nutritionInstructions}${wantsJson ? '\n\nReturn only valid JSON matching the requested schema.' : ''}`,
     },
     ...(await getUploadedParts(payload, 'gemini')),
   ];
@@ -814,11 +950,12 @@ app.post('/api/ai/invoke', async (req, res, next) => {
   try {
     const payload = req.body || {};
     const result = (await invokeGemini(payload)) || (await invokeOpenAI(payload)) || createFallbackFromSchema(payload.response_json_schema, payload.prompt);
-    res.json(normalizeNutritionResult(result, payload.prompt));
+    res.json(normalizeNutritionResult(normalizeSchemaResult(result, payload.response_json_schema, payload.prompt), payload.prompt));
   } catch (error) {
     if (payloadAllowsFallback(req.body)) {
       console.warn('AI invoke fallback:', error.message || error);
-      res.json(normalizeNutritionResult(createFallbackFromSchema(req.body.response_json_schema, req.body.prompt), req.body.prompt));
+      const fallback = createFallbackFromSchema(req.body.response_json_schema, req.body.prompt);
+      res.json(normalizeNutritionResult(normalizeSchemaResult(fallback, req.body.response_json_schema, req.body.prompt), req.body.prompt));
       return;
     }
     next(error);
@@ -827,6 +964,43 @@ app.post('/api/ai/invoke', async (req, res, next) => {
 
 function payloadAllowsFallback(payload) {
   return Boolean(payload?.response_json_schema || payload?.prompt);
+}
+
+function normalizeSchemaResult(result, schema, prompt = '') {
+  const props = schema?.properties || {};
+  if (!result || typeof result !== 'object' || Array.isArray(result)) return result;
+
+  if (props.title && props.ingredients && props.calories) {
+    if (result.title && Array.isArray(result.ingredients) && result.ingredients.length && result.calories) return result;
+    const fallback = createRecipeFallback(prompt);
+    return {
+      ...fallback,
+      ...result,
+      title: result.title || result.name || fallback.title,
+      serving: result.serving || result.portion || fallback.serving,
+      ingredients: Array.isArray(result.ingredients) && result.ingredients.length ? result.ingredients : fallback.ingredients,
+      calories: Number(result.calories) || fallback.calories,
+      proteins: Number(result.proteins) || fallback.proteins,
+      fats: Number(result.fats) || fallback.fats,
+      carbs: Number(result.carbs) || fallback.carbs,
+      note: result.note || result.description || fallback.note,
+    };
+  }
+
+  if (props.title && props.tasks) {
+    if (result.title && Array.isArray(result.tasks) && result.tasks.length) return result;
+    const fallback = createChallengeFallback(prompt);
+    return {
+      ...fallback,
+      ...result,
+      title: result.title || fallback.title,
+      description: result.description || fallback.description,
+      emoji: result.emoji || fallback.emoji,
+      tasks: Array.isArray(result.tasks) && result.tasks.length ? result.tasks : fallback.tasks,
+    };
+  }
+
+  return result;
 }
 
 app.use((error, _req, res, _next) => {
