@@ -1,23 +1,33 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppLayout from './components/layout/AppLayout';
-import Dashboard from './pages/Dashboard';
-import FoodLog from './pages/FoodLog';
-import WaterPage from './pages/WaterPage';
-import History from './pages/History';
-import Profile from './pages/Profile';
-import WeightTracker from './pages/WeightTracker';
-import Gamification from './pages/Gamification';
-import MealPlan from './pages/MealPlan';
 import { ThemeProvider } from './lib/ThemeContext';
 import { LanguageProvider } from './lib/LanguageContext';
 import SplashScreen from './components/layout/SplashScreen';
 import OnboardingSlides from './components/layout/OnboardingSlides';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const FoodLog = lazy(() => import('./pages/FoodLog'));
+const WaterPage = lazy(() => import('./pages/WaterPage'));
+const History = lazy(() => import('./pages/History'));
+const Profile = lazy(() => import('./pages/Profile'));
+const WeightTracker = lazy(() => import('./pages/WeightTracker'));
+const Gamification = lazy(() => import('./pages/Gamification'));
+const MealPlan = lazy(() => import('./pages/MealPlan'));
+const PageNotFound = lazy(() => import('./lib/PageNotFound'));
+
+function RouteFallback() {
+  return (
+    <div className="flex min-h-[60dvh] items-center justify-center">
+      <div className="h-8 w-8 rounded-full border-4 border-muted border-t-primary animate-spin" />
+    </div>
+  );
+}
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -46,19 +56,21 @@ const AuthenticatedApp = () => {
   return (
     <>
       <OnboardingSlides />
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/log" element={<FoodLog />} />
-          <Route path="/water" element={<WaterPage />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/weight" element={<WeightTracker />} />
-          <Route path="/gamification" element={<Gamification />} />
-          <Route path="/meal-plan" element={<MealPlan />} />
-          <Route path="/profile" element={<Profile />} />
-        </Route>
-        <Route path="*" element={<PageNotFound />} />
-      </Routes>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/log" element={<FoodLog />} />
+            <Route path="/water" element={<WaterPage />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/weight" element={<WeightTracker />} />
+            <Route path="/gamification" element={<Gamification />} />
+            <Route path="/meal-plan" element={<MealPlan />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+          <Route path="*" element={<PageNotFound />} />
+        </Routes>
+      </Suspense>
     </>
   );
 };
