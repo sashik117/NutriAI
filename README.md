@@ -165,6 +165,18 @@ npm run dev
 Frontend: `http://localhost:5176`  
 Backend: `http://localhost:4001`
 
+## Mobile App
+
+NutriAI includes Capacitor projects for Android and iOS. The mobile app uses the same optimized React/Vite build as the web app.
+
+```bash
+npm run mobile:build
+npm run android:open
+npm run ios:open
+```
+
+For real phones, set `VITE_API_BASE_URL` in `.env.mobile` to a backend URL reachable from the device. See [MOBILE.md](MOBILE.md) for Android/iOS build notes.
+
 ## 📜 Available Scripts
 
 ```bash
@@ -173,6 +185,9 @@ npm run client       # start Vite frontend only
 npm run server       # start Express backend only
 npm run db:migrate   # apply PostgreSQL schema
 npm run build        # create production frontend build
+npm run mobile:build # build and sync Android/iOS Capacitor apps
+npm run android:open # open Android project
+npm run ios:open     # open iOS project
 npm run lint         # run ESLint
 npm run typecheck    # run TypeScript/JS project checks
 ```
@@ -187,7 +202,7 @@ npm run typecheck    # run TypeScript/JS project checks
 ## 🌐 Live Demo
 
 Deployment link coming soon.  
-Current version: web app. Next step: phone app release.
+Current version: web app + Capacitor mobile project. Store release coming soon.
 
 ## 🧭 Roadmap
 

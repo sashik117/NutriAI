@@ -1,9 +1,13 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { Capacitor } from '@capacitor/core'
 import App from '@/App.jsx'
 import '@/index.css'
+import { initNativeAppControls } from '@/lib/mobileApp'
 
-if ('serviceWorker' in navigator) {
+initNativeAppControls()
+
+if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     if (import.meta.env.DEV) {
       navigator.serviceWorker.getRegistrations()

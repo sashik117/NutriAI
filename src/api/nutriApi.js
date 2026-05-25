@@ -1,4 +1,12 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+import { Capacitor } from '@capacitor/core';
+
+const nativeDevApiUrl = () => {
+  if (!Capacitor.isNativePlatform()) return '';
+  if (Capacitor.getPlatform() === 'android') return 'http://10.0.2.2:4001';
+  return 'http://localhost:4001';
+};
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || nativeDevApiUrl();
 
 async function request(path, options = {}) {
   const storedUser = JSON.parse(localStorage.getItem('nutriai_user') || 'null');
