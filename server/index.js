@@ -1003,6 +1003,18 @@ function normalizeSchemaResult(result, schema, prompt = '') {
   return result;
 }
 
+if (process.env.NODE_ENV === 'production') {
+  const distDir = path.resolve(__dirname, '..', 'dist');
+  app.use(express.static(distDir));
+  app.get(/.*/, (req, res) => {
+    if (req.path.startsWith('/api')) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
+}
+
 app.use((error, _req, res, _next) => {
   console.error(error);
   res.status(error.status || 500).json({ error: error.message || 'Server error' });
