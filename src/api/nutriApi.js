@@ -1,9 +1,10 @@
 import { Capacitor } from '@capacitor/core';
 
+const DEPLOYED_API_BASE_URL = 'https://nutriai-rt1k.onrender.com';
+
 const nativeDevApiUrl = () => {
   if (!Capacitor.isNativePlatform()) return '';
-  if (Capacitor.getPlatform() === 'android') return 'http://10.0.2.2:4001';
-  return 'http://localhost:4001';
+  return DEPLOYED_API_BASE_URL;
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || nativeDevApiUrl();

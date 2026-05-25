@@ -175,7 +175,7 @@ npm run android:open
 npm run ios:open
 ```
 
-For real phones, set `VITE_API_BASE_URL` in `.env.mobile` to a backend URL reachable from the device. See [MOBILE.md](MOBILE.md) for Android/iOS build notes.
+For real phones, the app points to the deployed backend at `https://nutriai-rt1k.onrender.com` by default. You can still override `VITE_API_BASE_URL` in `.env.mobile` for emulator or local backend testing. See [MOBILE.md](MOBILE.md) for Android/iOS build notes.
 
 ## 📜 Available Scripts
 
@@ -201,8 +201,9 @@ npm run typecheck    # run TypeScript/JS project checks
 
 ## 🌐 Live Demo
 
-Deployment link coming soon.  
-Current version: web app + Capacitor mobile project. Store release coming soon.
+[https://nutriai-rt1k.onrender.com](https://nutriai-rt1k.onrender.com)
+
+Current version: deployed web app + Capacitor mobile project. Store release coming soon.
 
 ## 🧭 Roadmap
 

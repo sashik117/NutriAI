@@ -7,7 +7,7 @@ NutriAI mobile is built with Capacitor so the iOS and Android apps reuse the sam
 The mobile app needs a backend URL reachable from the phone. Create `.env.mobile` from `.env.mobile.example`:
 
 ```bash
-VITE_API_BASE_URL=https://your-nutriai-backend.example.com
+VITE_API_BASE_URL=https://nutriai-rt1k.onrender.com
 ```
 
 For emulator-only local testing:
@@ -20,7 +20,11 @@ VITE_API_BASE_URL=http://10.0.2.2:4001
 VITE_API_BASE_URL=http://localhost:4001
 ```
 
-Real phones should use a deployed HTTPS backend.
+Real phones should use the deployed HTTPS backend. The current production API is:
+
+```text
+https://nutriai-rt1k.onrender.com
+```
 
 ## Build And Sync
 
