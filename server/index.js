@@ -215,6 +215,10 @@ function createFallbackFromSchema(schema, prompt = '') {
     };
   }
 
+  if (process.env.GEMINI_API_KEY) {
+    return 'Gemini тимчасово не відповів. Спробуйте ще раз або уточніть запит.';
+  }
+
   return 'AI-підказка тимчасово працює у fallback-режимі. Додайте GEMINI_API_KEY, щоб отримувати персональні відповіді.';
 }
 
@@ -349,16 +353,6 @@ function normalizeNutritionResult(result, prompt = '') {
   };
 }
 
-function normalizeSchemaForGemini(schema) {
-  if (!schema) return undefined;
-  return JSON.parse(
-    JSON.stringify(schema, (key, value) => {
-      if (key === 'additionalProperties' || key === '$schema') return undefined;
-      return value;
-    })
-  );
-}
-
 function extractGeminiText(data) {
   return data.candidates?.[0]?.content?.parts
     ?.map((part) => part.text || '')
@@ -437,7 +431,6 @@ async function invokeGemini(payload) {
       ...(wantsJson
         ? {
             responseMimeType: 'application/json',
-            responseSchema: normalizeSchemaForGemini(schema),
           }
         : {}),
     },
@@ -445,11 +438,19 @@ async function invokeGemini(payload) {
 
   const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -816,6 +817,7 @@ app.post('/api/ai/invoke', async (req, res, next) => {
     res.json(normalizeNutritionResult(result, payload.prompt));
   } catch (error) {
     if (payloadAllowsFallback(req.body)) {
+      console.warn('AI invoke fallback:', error.message || error);
       res.json(normalizeNutritionResult(createFallbackFromSchema(req.body.response_json_schema, req.body.prompt), req.body.prompt));
       return;
     }

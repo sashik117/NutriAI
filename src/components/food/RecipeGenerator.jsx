@@ -15,6 +15,22 @@ function cleanAiText(value, fallback = '') {
     .trim();
 }
 
+function toNumber(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const match = String(value || '').replace(',', '.').match(/\d+(\.\d+)?/);
+  return match ? Number(match[0]) : 0;
+}
+
+function normalizeIngredient(item) {
+  if (item && typeof item === 'object') {
+    const name = cleanAiText(item.name || item.title || item.item || item.product);
+    const amount = cleanAiText(item.amount || item.quantity || item.weight || item.serving);
+    return [name, amount].filter(Boolean).join(' - ');
+  }
+
+  return cleanAiText(item);
+}
+
 function normalizeRecipe(result, isEnglish) {
   if (typeof result === 'string') {
     return { raw: cleanAiText(result) };
@@ -22,17 +38,17 @@ function normalizeRecipe(result, isEnglish) {
 
   const title = cleanAiText(result?.title || result?.name, isEnglish ? 'Balanced meal idea' : 'Ідея страви');
   const ingredients = Array.isArray(result?.ingredients)
-    ? result.ingredients.map((item) => cleanAiText(item)).filter(Boolean)
+    ? result.ingredients.map((item) => normalizeIngredient(item)).filter(Boolean)
     : [];
 
   return {
     title,
     serving: cleanAiText(result?.serving || result?.portion || result?.grams, isEnglish ? '1 serving' : '1 порція'),
     ingredients,
-    calories: Math.round(Number(result?.calories) || 0),
-    proteins: Math.round((Number(result?.proteins) || 0) * 10) / 10,
-    fats: Math.round((Number(result?.fats) || 0) * 10) / 10,
-    carbs: Math.round((Number(result?.carbs) || 0) * 10) / 10,
+    calories: Math.round(toNumber(result?.calories)),
+    proteins: Math.round(toNumber(result?.proteins) * 10) / 10,
+    fats: Math.round(toNumber(result?.fats) * 10) / 10,
+    carbs: Math.round(toNumber(result?.carbs) * 10) / 10,
     note: cleanAiText(result?.note || result?.description),
   };
 }
