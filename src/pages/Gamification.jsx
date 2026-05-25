@@ -50,6 +50,26 @@ function getBestStreak(foodLogs) {
   return best;
 }
 
+function cleanAiText(value, fallback = '') {
+  return String(value || fallback)
+    .replace(/```json|```/gi, '')
+    .replace(/[#*_`>~]/g, '')
+    .replace(/^\s*[-•]\s*/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeChallenge(result, isEnglish) {
+  return {
+    title: cleanAiText(result?.title, isEnglish ? 'Personal challenge' : 'Персональний виклик'),
+    description: cleanAiText(result?.description, isEnglish ? 'A small weekly goal for your nutrition progress.' : 'Невелика тижнева ціль для прогресу.'),
+    emoji: cleanAiText(result?.emoji, '✨'),
+    tasks: Array.isArray(result?.tasks)
+      ? result.tasks.map((task) => cleanAiText(task)).filter(Boolean)
+      : [],
+  };
+}
+
 export default function Gamification() {
   const { isEnglish, text } = useLanguage();
   const [generatingChallenge, setGeneratingChallenge] = useState(false);
@@ -120,7 +140,15 @@ export default function Gamification() {
     setGeneratingChallenge(true);
     try {
       const result = await nutriApi.integrations.Core.InvokeLLM({
-        prompt: `Згенеруй персональний тижневий челендж українською. Ціль: ${profile?.goal || 'maintain'}, калорії: ${profile?.daily_calories || 2000}, білки: ${profile?.daily_proteins || 150} г, серія: ${streak} днів. Поверни назву, опис, emoji і 5 коротких щоденних завдань.`,
+        prompt: isEnglish
+          ? `Generate a personal weekly nutrition challenge in English.
+Goal: ${profile?.goal || 'maintain'}, calories: ${profile?.daily_calories || 2000}, protein: ${profile?.daily_proteins || 150} g, streak: ${streak} days.
+Return only clean JSON with title, description, emoji and 5 short daily tasks.
+No markdown, no #, no *, no bullet characters.`
+          : `Згенеруй персональний тижневий челендж українською.
+Ціль: ${profile?.goal || 'maintain'}, калорії: ${profile?.daily_calories || 2000}, білки: ${profile?.daily_proteins || 150} г, серія: ${streak} днів.
+Поверни тільки чистий JSON з title, description, emoji і 5 коротких щоденних завдань.
+Без markdown, без #, без *, без маркерів списку.`,
         response_json_schema: {
           type: 'object',
           properties: {
@@ -132,9 +160,9 @@ export default function Gamification() {
         },
         model: 'gemini_3_flash',
       });
-      setChallenge(result);
+      setChallenge(normalizeChallenge(result, isEnglish));
     } catch (error) {
-      toast.error(error.message || 'Не вдалося створити челендж');
+      toast.error(error.message || text('Не вдалося створити челендж', 'Could not create challenge'));
     } finally {
       setGeneratingChallenge(false);
     }
@@ -145,7 +173,7 @@ export default function Gamification() {
     const next = freezeCount - 1;
     setFreezeCount(next);
     localStorage.setItem('kbju_streak_freeze', String(next));
-    toast.success('Заморозку серії активовано');
+    toast.success(text('Заморозку серії активовано', 'Streak freeze activated'));
   };
 
   const unlockedTypes = achievements.map((item) => item.type);
