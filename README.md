@@ -138,6 +138,8 @@ Main data pipeline:
 User input -> DTO/service -> AI provider -> nutrition rules -> API -> PostgreSQL -> UI refresh
 ```
 
+Detailed architecture notes are available in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
 ## 🚀 Installation
 
 Clone the repository:

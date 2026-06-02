@@ -20,6 +20,12 @@ import {
   updateEditableMealItem,
 } from '../src/domain/food/editMealModel.js';
 import {
+  buildFoodResultSavePayload,
+  normalizeFoodResultItem,
+  summarizeFoodResultItems,
+  updateFoodResultItem,
+} from '../src/domain/food/foodResultModel.js';
+import {
   buildBodyMeasurementChartData,
   buildBodyMeasurementPayload,
   hasAnyMeasurementValue,
@@ -87,6 +93,17 @@ assert.deepEqual(summarizeEditableMealItems([{ calories: 100, proteins: 10, fats
   carbs: 15,
 });
 assert.equal(buildMealUpdatePayload({ mealType: 'lunch', items: [{ calories: 120.4, proteins: 8.2, fats: 3.2, carbs: 15.8 }] }).total_calories, 120);
+
+const foodResultItem = normalizeFoodResultItem({ title: '*Pasta*', amount: '150', calories: '220', proteins: '8' });
+assert.equal(foodResultItem.name, 'Pasta');
+assert.equal(updateFoodResultItem({ unit: 'g', amount: 100, weight_g: 100 }, 'amount', '180').weight_g, 180);
+assert.deepEqual(summarizeFoodResultItems([{ calories: 200, proteins: 10, fats: 4, carbs: 32 }]), {
+  total_calories: 200,
+  total_proteins: 10,
+  total_fats: 4,
+  total_carbs: 32,
+});
+assert.equal(buildFoodResultSavePayload({ source: 'ai' }, [{ name: 'Milk', unit: 'ml', amount: 200, calories: 120 }]).total_calories, 120);
 
 const shoppingList = buildListFromMeals([
   {
