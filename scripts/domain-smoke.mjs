@@ -33,6 +33,11 @@ import {
   updateFoodResultItem,
 } from '../src/domain/food/foodResultModel.js';
 import {
+  buildSearchResults,
+  cleanProduct,
+  stripBrandNoise,
+} from '../src/domain/food/productSearchModel.js';
+import {
   buildBodyMeasurementChartData,
   buildBodyMeasurementPayload,
   hasAnyMeasurementValue,
@@ -121,6 +126,16 @@ assert.deepEqual(summarizeFoodResultItems([{ calories: 200, proteins: 10, fats: 
   total_carbs: 32,
 });
 assert.equal(buildFoodResultSavePayload({ source: 'ai' }, [{ name: 'Milk', unit: 'ml', amount: 200, calories: 120 }]).total_calories, 120);
+
+const cleanedPastaName = stripBrandNoise('Макарони &quot;Spaghetti&quot; De Luxe', 'De Luxe');
+assert.equal(cleanedPastaName, 'Спагетті');
+const repairedSnickers = cleanProduct({ name: 'Snickers', calories: 200, proteins: 8, fats: 6, carbs: 28 }, 'snickers');
+assert.ok(repairedSnickers.calories > 400, 'suspicious product template should be replaced with realistic estimate');
+const dedupedSearch = buildSearchResults([
+  { name: 'Макарони Spaghetti', calories: 356, proteins: 9, fats: 1, carbs: 77 },
+  { name: 'Spaghetti pasta', calories: 360, proteins: 10, fats: 1, carbs: 76 },
+], 'спагетті');
+assert.equal(dedupedSearch.length, 1);
 
 const shoppingList = buildListFromMeals([
   {

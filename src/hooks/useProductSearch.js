@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { cleanProduct, searchProducts } from '@/services/productSearchService';
+import { cleanProduct } from '@/domain/food/productSearchModel';
+import { searchProducts } from '@/services/productSearchService';
 
 export function useProductSearch({ onAdd }) {
   const [query, setQuery] = useState('');
