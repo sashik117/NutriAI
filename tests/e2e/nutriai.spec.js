@@ -210,6 +210,127 @@ test('user can analyze and save a food entry from AI text', async ({ page }, tes
   await expectNoRuntimeErrors(consoleErrors, pageErrors);
 });
 
+test('plate scanner can analyze an uploaded gallery photo', async ({ page }, testInfo) => {
+  const { consoleErrors, pageErrors } = await prepareApp(page, testInfo.title);
+
+  await page.route('**/api/files', async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ file_url: '/uploads/e2e-plate.jpg' }),
+    });
+  });
+
+  await page.route('**/api/ai/invoke', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        dish_name: 'Паста Болоньєзе',
+        description: 'Паста Болоньєзе з мʼясним соусом',
+        total_calories: 610,
+        total_proteins: 28,
+        total_fats: 18,
+        total_carbs: 82,
+        items: [
+          {
+            name: 'Паста варена',
+            unit: 'g',
+            amount: 220,
+            weight_g: 220,
+            calories: 330,
+            proteins: 11,
+            fats: 2,
+            carbs: 68,
+          },
+          {
+            name: 'Мʼясний соус',
+            unit: 'g',
+            amount: 130,
+            weight_g: 130,
+            calories: 280,
+            proteins: 17,
+            fats: 16,
+            carbs: 14,
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.goto('/log');
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: 'plate.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+  });
+
+  const dishNameInputs = page.getByRole('textbox', { name: 'Назва страви' });
+  await expect(dishNameInputs.nth(0)).toHaveValue('Паста варена');
+  await expect(dishNameInputs.nth(1)).toHaveValue('Мʼясний соус');
+  await expect(page.getByText('610')).toBeVisible();
+
+  const createLog = page.waitForResponse((response) =>
+    response.url().includes('/api/entities/FoodLog') && response.request().method() === 'POST' && response.ok()
+  );
+  await page.getByRole('button', { name: /Зберегти/ }).click();
+  await createLog;
+
+  await expect(page.getByText(/Паста варена 220/)).toBeVisible();
+  await expect(page.getByText(/Мʼясний соус 130/)).toBeVisible();
+
+  await expectNoRuntimeErrors(consoleErrors, pageErrors);
+});
+
+test('barcode label upload can create editable product nutrition', async ({ page }, testInfo) => {
+  const { consoleErrors, pageErrors } = await prepareApp(page, testInfo.title);
+
+  await page.route('**/api/files', async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ file_url: '/uploads/e2e-label.jpg' }),
+    });
+  });
+
+  await page.route('**/api/ai/invoke', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        name: 'Твікс батончик',
+        brand: 'Mars',
+        package_weight_g: 50,
+        calories_per_100g: 495,
+        proteins_per_100g: 4.5,
+        fats_per_100g: 24,
+        carbs_per_100g: 65,
+      }),
+    });
+  });
+
+  await page.goto('/log');
+  await page.locator('input[type="file"]').nth(1).setInputFiles({
+    name: 'label.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+  });
+
+  await expect(page.getByRole('textbox', { name: 'Назва страви' })).toHaveValue('Mars Твікс батончик');
+  await expect(page.getByText('248')).toBeVisible();
+
+  await page.getByRole('spinbutton').first().fill('55');
+  const createLog = page.waitForResponse((response) =>
+    response.url().includes('/api/entities/FoodLog') && response.request().method() === 'POST' && response.ok()
+  );
+  await page.getByRole('button', { name: /Зберегти/ }).click();
+  await createLog;
+
+  await expect(page.getByText(/Mars Твікс батончик 55/)).toBeVisible();
+
+  await expectNoRuntimeErrors(consoleErrors, pageErrors);
+});
+
 test('water tracker supports add, edit, and delete', async ({ page }, testInfo) => {
   const { consoleErrors, pageErrors } = await prepareApp(page, testInfo.title);
 
