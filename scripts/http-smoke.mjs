@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5176';
 const apiUrl = process.env.API_URL || 'http://localhost:4001';
 
-const pages = ['/', '/log', '/meal-plan', '/profile', '/water', '/weight', '/gamification'];
+const pages = ['/', '/log', '/meal-plan', '/profile', '/water', '/weight', '/history', '/gamification'];
 
 async function fetchWithTimeout(url, timeoutMs = 7000) {
   const controller = new AbortController();

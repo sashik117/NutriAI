@@ -123,7 +123,7 @@ async function expectNoRuntimeErrors(consoleErrors, pageErrors) {
 
 test('critical mobile routes render without raw technical output', async ({ page }, testInfo) => {
   const { consoleErrors, pageErrors } = await prepareApp(page, testInfo.title);
-  const routes = ['/', '/log', '/meal-plan', '/profile', '/water', '/weight', '/gamification'];
+  const routes = ['/', '/log', '/meal-plan', '/profile', '/water', '/weight', '/history', '/gamification'];
 
   for (const route of routes) {
     await page.goto(route);

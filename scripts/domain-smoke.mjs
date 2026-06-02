@@ -15,6 +15,12 @@ import {
   storeActivity,
 } from '../src/domain/health/activityModel.js';
 import {
+  buildHistoryDate,
+  buildHistoryDays,
+  summarizeHistoryFood,
+  summarizeHistoryWater,
+} from '../src/domain/history/historyModel.js';
+import {
   buildMealUpdatePayload,
   normalizeEditableMealItem,
   summarizeEditableMealItems,
@@ -83,6 +89,16 @@ const storage = {
 };
 storeActivity({ steps: 500, active_calories: 20, source: 'manual' }, storage);
 assert.equal(readStoredActivity(storage).steps, 500);
+
+assert.deepEqual(summarizeHistoryFood(foodLogs), {
+  calories: 1200,
+  proteins: 70,
+  fats: 32,
+  carbs: 140,
+});
+assert.equal(summarizeHistoryWater([{ amount_ml: 100 }, { amount_ml: 250 }]), 350);
+assert.equal(buildHistoryDate(1, new Date('2026-06-02T12:00:00')), '2026-06-01');
+assert.equal(buildHistoryDays({ baseDate: new Date('2026-06-02T12:00:00'), isEnglish: true })[1].label, 'Yesterday');
 
 const editableItem = normalizeEditableMealItem({ name: 'Milk', unit: 'ml', amount: 200, calories: 120 });
 assert.equal(editableItem.unit, 'ml');
