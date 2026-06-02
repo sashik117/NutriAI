@@ -1,15 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { Button } from '@/components/ui/button';
 import { Camera, ImagePlus, Loader2, ScanBarcode, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { hasUsefulNutrition, repairNutritionItem } from '@/lib/nutritionFallback';
+import { analyzeProductLabel, extractBarcode, fetchProductByBarcode } from '@/services/barcodeScannerService';
 import { useLanguage } from '@/lib/LanguageContext';
-
-function cleanText(value, fallback = '') {
-  return String(value || fallback).replace(/\*/g, '').replace(/[•]/g, '').replace(/\s+/g, ' ').trim();
-}
 
 function dataUrlToFile(dataUrl, filename) {
   const [meta, content] = dataUrl.split(',');
@@ -18,69 +13,6 @@ function dataUrlToFile(dataUrl, filename) {
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
   return new File([bytes], filename, { type: mime });
-}
-
-function extractBarcode(rawValue) {
-  return String(rawValue || '').match(/\d{8,14}/)?.[0] || String(rawValue || '').trim();
-}
-
-function normalizeOpenFoodFacts(product, code) {
-  const nutriments = product?.nutriments || {};
-  const weight = Math.max(Number(product?.serving_quantity || product?.product_quantity || 100) || 100, 1);
-  const ratio = weight / 100;
-  const per100 = {
-    calories: Number(nutriments['energy-kcal_100g']) || Number(nutriments['energy-kcal']) || 0,
-    proteins: Number(nutriments.proteins_100g) || 0,
-    fats: Number(nutriments.fat_100g) || 0,
-    carbs: Number(nutriments.carbohydrates_100g) || 0,
-  };
-
-  const normalized = {
-    barcode: code,
-    name: cleanText(product?.product_name || product?.generic_name, `Продукт ${code}`),
-    brand: cleanText(product?.brands?.split(',')?.[0]),
-    serving_label: cleanText(product?.serving_size, `${Math.round(weight)} г`),
-    unit: 'g',
-    amount: Math.round(weight),
-    weight_g: Math.round(weight),
-    calories: Math.round(per100.calories * ratio),
-    proteins: Math.round(per100.proteins * ratio * 10) / 10,
-    fats: Math.round(per100.fats * ratio * 10) / 10,
-    carbs: Math.round(per100.carbs * ratio * 10) / 10,
-  };
-  return repairNutritionItem(normalized, product?.product_name || product?.generic_name || code);
-}
-
-function normalizeVisionProduct(result, barcodeHint = '') {
-  const packageWeight = Math.max(Number(result?.package_weight_g || result?.weight_g || 100) || 100, 1);
-  const ratio = packageWeight / 100;
-  const caloriesPer100 = Number(result?.calories_per_100g || result?.per100?.calories || 0);
-  const proteinsPer100 = Number(result?.proteins_per_100g || result?.per100?.proteins || 0);
-  const fatsPer100 = Number(result?.fats_per_100g || result?.per100?.fats || 0);
-  const carbsPer100 = Number(result?.carbs_per_100g || result?.per100?.carbs || 0);
-
-  const normalized = {
-    barcode: cleanText(result?.barcode, barcodeHint),
-    name: cleanText(result?.name, barcodeHint ? `Продукт ${barcodeHint}` : 'Продукт'),
-    brand: cleanText(result?.brand),
-    serving_label: cleanText(result?.serving_label, `${Math.round(packageWeight)} г`),
-    unit: result?.unit === 'ml' ? 'ml' : 'g',
-    amount: Math.max(Math.round(Number(result?.amount ?? result?.volume_ml ?? packageWeight) || packageWeight), 1),
-    weight_g: Math.round(packageWeight),
-    calories: Math.max(Math.round(Number(result?.calories_total || result?.calories) || caloriesPer100 * ratio), 1),
-    proteins: Math.round((Number(result?.proteins_total || result?.proteins) || proteinsPer100 * ratio) * 10) / 10,
-    fats: Math.round((Number(result?.fats_total || result?.fats) || fatsPer100 * ratio) * 10) / 10,
-    carbs: Math.round((Number(result?.carbs_total || result?.carbs) || carbsPer100 * ratio) * 10) / 10,
-  };
-  return repairNutritionItem(normalized, result?.name || barcodeHint);
-}
-
-async function fetchProductByCode(code) {
-  const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`);
-  if (!response.ok) return null;
-  const data = await response.json();
-  if (data.status !== 1 || !data.product) return null;
-  return normalizeOpenFoodFacts(data.product, code);
 }
 
 export default function BarcodeScanner({ onResult }) {
@@ -134,52 +66,15 @@ export default function BarcodeScanner({ onResult }) {
       reader.onload = (event) => setPreview(event.target.result);
       reader.readAsDataURL(file);
 
-      const { file_url } = await nutriApi.integrations.Core.UploadFile({ file });
-      const result = await nutriApi.integrations.Core.InvokeLLM({
-        prompt: `Ти розпізнаєш етикетку харчового продукту для NutriAI.
-Штрих-код якщо вже зчитано: ${barcodeHint || 'немає'}.
-З фото визнач назву продукту, бренд, вагу упаковки та таблицю КБЖУ на 100 г.
-Для напоїв і рідин поверни unit "ml" і amount у мілілітрах. Для твердої їжі поверни unit "g" і amount у грамах.
-Порахуй загальні калорії, білки, жири і вуглеводи для всієї упаковки або видимої порції.
-Поверни тільки JSON. Без markdown, зірочок, маркерів і вигаданих продуктів.`,
-        file_urls: [file_url],
-        model: 'gemini_3_flash',
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            brand: { type: 'string' },
-            barcode: { type: 'string' },
-            serving_label: { type: 'string' },
-            unit: { type: 'string' },
-            amount: { type: 'number' },
-            weight_g: { type: 'number' },
-            package_weight_g: { type: 'number' },
-            calories_per_100g: { type: 'number' },
-            proteins_per_100g: { type: 'number' },
-            fats_per_100g: { type: 'number' },
-            carbs_per_100g: { type: 'number' },
-            calories_total: { type: 'number' },
-            proteins_total: { type: 'number' },
-            fats_total: { type: 'number' },
-            carbs_total: { type: 'number' },
-            calories: { type: 'number' },
-            proteins: { type: 'number' },
-            fats: { type: 'number' },
-            carbs: { type: 'number' },
-          },
-        },
-      });
-
-      const normalized = normalizeVisionProduct(result, barcodeHint);
+      const normalized = await analyzeProductLabel(file, barcodeHint);
       if (!normalized.name) {
-        toast.error('Не вдалося прочитати етикетку');
+        toast.error(text('Не вдалося прочитати етикетку', 'Could not read the label'));
         return;
       }
-      toast.success(`${normalized.name} розпізнано через Gemini`);
+      toast.success(text(`${normalized.name} розпізнано через Gemini`, `${normalized.name} recognized by Gemini`));
       applyResult(normalized);
     } catch (error) {
-      toast.error(error?.message || 'Не вдалося розпізнати етикетку');
+      toast.error(error?.message || text('Не вдалося розпізнати етикетку', 'Could not recognize the label'));
     } finally {
       setScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -192,8 +87,8 @@ export default function BarcodeScanner({ onResult }) {
     setDetectedCode(code);
     setScanning(true);
     try {
-      const product = await fetchProductByCode(code);
-      if (product && hasUsefulNutrition(product)) {
+      const product = await fetchProductByBarcode(code);
+      if (product) {
         toast.success(`${product.name} знайдено`);
         applyResult(product);
         return;

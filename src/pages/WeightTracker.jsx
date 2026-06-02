@@ -13,6 +13,7 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import BodyMeasurements from '../components/weight/BodyMeasurement';
+import { generateWeightForecast } from '@/services/progressInsightService';
 
 export default function WeightTracker() {
   const [newWeight, setNewWeight] = useState('');
@@ -62,17 +63,11 @@ export default function WeightTracker() {
 
   const generateForecast = async () => {
     setLoadingForecast(true);
-    const result = await nutriApi.integrations.Core.InvokeLLM({
-      prompt: `Проаналізуй динаміку ваги користувача та зроби прогноз.
-Записи (дата: вага): ${chartData.map(d => `${d.date}: ${d.weight}кг`).join(', ')}
-Поточна вага: ${latestWeight}кг
-Ціль користувача: ${profile?.goal === 'lose' ? 'схуднення' : profile?.goal === 'gain' ? 'набір маси' : 'підтримка ваги'}
-Денна норма калорій: ${profile?.daily_calories || 2000} ккал
-Зроби персональний прогноз на 2-3 речення українською: коли досягне цілі, темп змін, мотивація.`,
-      model: 'gemini_3_flash',
-    });
-    setForecast(result);
-    setLoadingForecast(false);
+    try {
+      setForecast(await generateWeightForecast({ chartData, latestWeight, profile }));
+    } finally {
+      setLoadingForecast(false);
+    }
   };
 
   const CustomTooltip = ({ active, payload }) => {

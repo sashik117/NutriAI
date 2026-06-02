@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { transcribeFoodAudio } from '@/services/voiceTranscriptionService';
 
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
@@ -38,23 +39,11 @@ export function useVoiceRecorder() {
 
   const transcribeAudio = async (blob) => {
     setIsTranscribing(true);
-
-    // Upload audio file
-    const { file_url } = await import('@/api/nutriApi').then(m =>
-      m.nutriApi.integrations.Core.UploadFile({ file: blob })
-    );
-
-    // Use Gemini to transcribe (it supports audio via file_urls)
-    const result = await import('@/api/nutriApi').then(m =>
-      m.nutriApi.integrations.Core.InvokeLLM({
-        prompt: 'Transcribe the audio accurately into Ukrainian text. Return ONLY the transcribed text, nothing else. The person is describing food they ate.',
-        file_urls: [file_url],
-        model: 'gemini_3_flash',
-      })
-    );
-
-    setIsTranscribing(false);
-    return result;
+    try {
+      return await transcribeFoodAudio(blob);
+    } finally {
+      setIsTranscribing(false);
+    }
   };
 
   return { isRecording, isTranscribing, startRecording, stopRecording, transcribeAudio };

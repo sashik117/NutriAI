@@ -1,57 +1,9 @@
 import { useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { nutriApi } from '@/api/nutriApi';
 import { toast } from 'sonner';
 import { useLanguage } from '@/lib/LanguageContext';
-
-function cleanAiText(value, fallback = '') {
-  return String(value || fallback)
-    .replace(/```json|```/gi, '')
-    .replace(/[#*_`>~]/g, '')
-    .replace(/^\s*[-•]\s*/gm, '')
-    .replace(/\s+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function toNumber(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  const match = String(value || '').replace(',', '.').match(/\d+(\.\d+)?/);
-  return match ? Number(match[0]) : 0;
-}
-
-function normalizeIngredient(item) {
-  if (item && typeof item === 'object') {
-    const name = cleanAiText(item.name || item.title || item.item || item.product);
-    const amount = cleanAiText(item.amount || item.quantity || item.weight || item.serving);
-    return [name, amount].filter(Boolean).join(' - ');
-  }
-
-  return cleanAiText(item);
-}
-
-function normalizeRecipe(result, isEnglish) {
-  if (typeof result === 'string') {
-    return { raw: cleanAiText(result) };
-  }
-
-  const title = cleanAiText(result?.title || result?.name, isEnglish ? 'Balanced meal idea' : 'Ідея страви');
-  const ingredients = Array.isArray(result?.ingredients)
-    ? result.ingredients.map((item) => normalizeIngredient(item)).filter(Boolean)
-    : [];
-
-  return {
-    title,
-    serving: cleanAiText(result?.serving || result?.portion || result?.grams, isEnglish ? '1 serving' : '1 порція'),
-    ingredients,
-    calories: Math.round(toNumber(result?.calories)),
-    proteins: Math.round(toNumber(result?.proteins) * 10) / 10,
-    fats: Math.round(toNumber(result?.fats) * 10) / 10,
-    carbs: Math.round(toNumber(result?.carbs) * 10) / 10,
-    note: cleanAiText(result?.note || result?.description),
-  };
-}
+import { generateRecipeSuggestion } from '@/services/recipeSuggestionService';
 
 export default function RecipeGenerator({ remainingCalories = 0 }) {
   const { isEnglish, text } = useLanguage();
@@ -61,35 +13,7 @@ export default function RecipeGenerator({ remainingCalories = 0 }) {
   const generate = async () => {
     setLoading(true);
     try {
-      const target = Math.max(200, Math.round(remainingCalories || 0));
-      const seed = Math.random().toString(36).slice(2, 8);
-      const result = await nutriApi.integrations.Core.InvokeLLM({
-        model: 'gemini_3_flash',
-        prompt: isEnglish
-          ? `Suggest one simple meal in English for about ${target} kcal.
-Unique variant seed: ${seed}.
-Return only clean JSON. No markdown, no headings, no #, no *, no bullet characters.
-Keep it realistic and balanced, not extremely fatty.
-Fields: title, serving, ingredients array, calories, proteins, fats, carbs, note.`
-          : `Запропонуй одну просту страву українською приблизно на ${target} ккал.
-Поверни тільки чистий JSON. Без markdown, без заголовків, без #, без *, без маркерів списку.
-Страва має бути реалістична і збалансована, не жирна на максимум.
-Поля: title, serving, ingredients масив, calories, proteins, fats, carbs, note.`,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            title: { type: 'string' },
-            serving: { type: 'string' },
-            ingredients: { type: 'array', items: { type: 'string' } },
-            calories: { type: 'number' },
-            proteins: { type: 'number' },
-            fats: { type: 'number' },
-            carbs: { type: 'number' },
-            note: { type: 'string' },
-          },
-        },
-      });
-      setRecipe(normalizeRecipe(result, isEnglish));
+      setRecipe(await generateRecipeSuggestion({ remainingCalories, isEnglish }));
     } catch (error) {
       toast.error(error.message || text('Не вдалося згенерувати ідею', 'Could not generate an idea'));
     } finally {
@@ -110,6 +34,7 @@ Fields: title, serving, ingredients array, calories, proteins, fats, carbs, note
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         </Button>
       </div>
+
       {recipe && (
         <div className="mt-3 rounded-2xl bg-background/70 p-3 text-xs leading-relaxed">
           {recipe.raw ? (

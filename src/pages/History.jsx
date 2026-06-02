@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MealCard from '../components/dashboard/MealCard';
+import { generateDayNutritionSummary } from '@/services/progressInsightService';
 
 export default function History() {
   const [selectedDay, setSelectedDay] = useState(0); // 0 = today, 1 = yesterday, etc
@@ -55,36 +56,11 @@ export default function History() {
 
   const generateSummary = async () => {
     setLoadingSummary(true);
-    const goals = {
-      calories: profile?.daily_calories || 2000,
-      proteins: profile?.daily_proteins || 150,
-      fats: profile?.daily_fats || 67,
-      carbs: profile?.daily_carbs || 200,
-    };
-
-    const personalityMap = {
-      caring_grandma: 'Відповідай як турботлива українська бабуся, ласкаво і з теплом.',
-      strict_coach: 'Відповідай як суворий фітнес-тренер, прямолінійно і мотивуючи.',
-      lofi_friend: 'Відповідай як спокійний дружній приятель.',
-    };
-
-    const personality = personalityMap[profile?.ai_personality] || personalityMap.lofi_friend;
-
-    const result = await nutriApi.integrations.Core.InvokeLLM({
-      prompt: `${personality}
-
-Проаналізуй денний раціон користувача та дай пораду (2-3 речення українською). Будь конкретним.
-
-Цілі: ${goals.calories} ккал, Б: ${goals.proteins}г, Ж: ${goals.fats}г, В: ${goals.carbs}г
-Факт: ${Math.round(totals.calories)} ккал, Б: ${Math.round(totals.proteins)}г, Ж: ${Math.round(totals.fats)}г, В: ${Math.round(totals.carbs)}г
-Вода: ${totalWater}мл
-
-Страви: ${foodLogs.map(l => l.description || l.items?.map(i => i.name).join(', ')).join('; ')}`,
-      model: 'gemini_3_flash',
-    });
-
-    setAiSummary(result);
-    setLoadingSummary(false);
+    try {
+      setAiSummary(await generateDayNutritionSummary({ profile, totals, totalWater, foodLogs }));
+    } finally {
+      setLoadingSummary(false);
+    }
   };
 
   return (

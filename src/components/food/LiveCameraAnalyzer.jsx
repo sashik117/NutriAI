@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { Button } from '@/components/ui/button';
 import { Camera, ImagePlus, Loader2, ScanLine, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { cleanFoodText, repairNutritionItem } from '@/lib/nutritionFallback';
+import { analyzePlatePhoto, createApproximatePlateResult } from '@/services/plateVisionService';
 import { useLanguage } from '@/lib/LanguageContext';
 
 function dataUrlToFile(dataUrl, filename) {
@@ -14,116 +13,6 @@ function dataUrlToFile(dataUrl, filename) {
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
   return new File([bytes], filename, { type: mime });
-}
-
-function firstText(...values) {
-  return values.map((value) => cleanFoodText(value, '')).find(Boolean) || '';
-}
-
-function isGenericName(value) {
-  const text = cleanFoodText(value, '').toLowerCase();
-  return !text || /^(їжа|еда|food|страва|блюдо|продукт|meal|item)$/i.test(text);
-}
-
-function numberFrom(...values) {
-  const value = values.find((item) => Number.isFinite(Number(item)) && Number(item) > 0);
-  return Number(value) || 0;
-}
-
-function normalizePlateItem(item, fallbackName = '') {
-  const name = firstText(
-    item?.name,
-    item?.dish_name,
-    item?.meal_name,
-    item?.title,
-    item?.dish,
-    item?.ingredient,
-    item?.food_name,
-    item?.description,
-    fallbackName
-  );
-  const unit = item?.unit === 'ml' ? 'ml' : 'g';
-  const amount = Math.max(Math.round(numberFrom(item?.amount, item?.volume_ml, item?.weight_g, item?.grams, 100)), 1);
-
-  return repairNutritionItem({
-    name,
-    unit,
-    amount,
-    weight_g: Math.max(Math.round(numberFrom(item?.weight_g, item?.grams, unit === 'g' ? amount : 100)), 1),
-    calories: Math.max(Math.round(numberFrom(item?.calories, item?.kcal, item?.energy_kcal)), 0),
-    proteins: Math.round(numberFrom(item?.proteins, item?.protein) * 10) / 10,
-    fats: Math.round(numberFrom(item?.fats, item?.fat) * 10) / 10,
-    carbs: Math.round(numberFrom(item?.carbs, item?.carbohydrates) * 10) / 10,
-  }, name || fallbackName);
-}
-
-function normalizePlateResult(result) {
-  const dishName = firstText(result?.dish_name, result?.meal_name, result?.name, result?.title, result?.description);
-  const rawItems = Array.isArray(result?.items) ? result.items : [];
-  const sourceItems = rawItems.length
-    ? rawItems
-    : [{
-        name: dishName,
-        amount: result?.amount || result?.weight_g || 300,
-        weight_g: result?.weight_g || result?.grams || 300,
-        calories: result?.total_calories || result?.calories,
-        proteins: result?.total_proteins || result?.proteins,
-        fats: result?.total_fats || result?.fats,
-        carbs: result?.total_carbs || result?.carbs,
-      }];
-
-  const items = sourceItems
-    .map((item, index) => {
-      const fallback = !isGenericName(dishName) ? `${dishName}${sourceItems.length > 1 ? ` ${index + 1}` : ''}` : '';
-      return normalizePlateItem(item, fallback);
-    })
-    .filter((item) => item.name && !isGenericName(item.name));
-
-  const sum = (key) => Math.round(items.reduce((total, item) => total + (Number(item[key]) || 0), 0) * 10) / 10;
-  const fallbackDescription = items.map((item) => `${item.name} ~${item.amount} ${item.unit === 'ml' ? 'мл' : 'г'}`).join(', ');
-
-  return {
-    description: !isGenericName(dishName) ? dishName : fallbackDescription,
-    items,
-    total_calories: Math.round(numberFrom(result?.total_calories, result?.calories, sum('calories'))),
-    total_proteins: Math.round(numberFrom(result?.total_proteins, result?.proteins, sum('proteins')) * 10) / 10,
-    total_fats: Math.round(numberFrom(result?.total_fats, result?.fats, sum('fats')) * 10) / 10,
-    total_carbs: Math.round(numberFrom(result?.total_carbs, result?.carbs, sum('carbs')) * 10) / 10,
-    ai_tip: cleanFoodText(result?.ai_tip, ''),
-  };
-}
-
-function createApproximatePlateResult(reason = '') {
-  return normalizePlateResult({
-    dish_name: 'Ймовірно паста з соусом',
-    description: reason ? `Ймовірно паста з соусом. ${reason}` : 'Ймовірно паста з соусом',
-    total_calories: 520,
-    total_proteins: 20,
-    total_fats: 16,
-    total_carbs: 72,
-    ai_tip: 'Результат приблизний. Перевірте назву, вагу і КБЖУ перед збереженням.',
-    items: [
-      { name: 'Паста варена', unit: 'g', amount: 220, weight_g: 220, calories: 330, proteins: 11, fats: 2, carbs: 68 },
-      { name: 'Соус з мʼясом', unit: 'g', amount: 120, weight_g: 120, calories: 190, proteins: 9, fats: 14, carbs: 4 },
-    ],
-  });
-}
-
-function getVisionPrompt(force = false) {
-  return `Ти експерт-дієтолог NutriAI і аналізуєш фото тарілки.
-КРИТИЧНО: якщо на фото є будь-яка їжа, ти МАЄШ повернути результат. Не кажи "не можу", не повертаєш пустий JSON, не відмовляйся.
-Якщо не впевнений на 100%, дай найбільш імовірну назву і постав ai_tip "Приблизно, можна відредагувати".
-Найважливіше поле: назва страви. Обов'язково заповни dish_name і name. Не повертай пусті рядки.
-Приклад для пасти з м'ясним соусом: dish_name "Макарони Болоньєзе", items: паста варена 200 г, соус Болоньєзе 120 г, сир 10 г.
-Правила:
-1. Заборонено писати загальні назви "Їжа", "Страва", "Продукт", "Meal".
-2. Якщо страва складна, розклади її на видимі компоненти з приблизною вагою.
-3. Розрахуй реалістичні КБЖУ для кожного компонента і загальні total_*.
-4. Для рідин використовуй unit "ml", для твердої їжі unit "g".
-5. Якщо фото нечітке, дай найкращу конкретну гіпотезу за текстурою, кольором і формою.
-6. М'ясо без панірування майже не має вуглеводів, зелень 2-5 г майже не має калорій, пасту рахуй як варену.
-${force ? 'ФОРС-РЕЖИМ: поверни приблизний обʼєкт навіть при низькій впевненості. Для пасти/макаронів із червоним або коричневим соусом назва має бути "Макарони Болоньєзе" або "Паста з мʼясним соусом".' : ''}
-Відповідай СТРОГО JSON без markdown і без пояснювального тексту.`;
 }
 
 export default function LiveCameraAnalyzer({ onResult }) {
@@ -184,61 +73,17 @@ export default function LiveCameraAnalyzer({ onResult }) {
       reader.onload = (event) => setPreview(event.target.result);
       reader.readAsDataURL(file);
 
-      const { file_url } = await nutriApi.integrations.Core.UploadFile({ file });
-      const schema = {
-        type: 'object',
-        properties: {
-          dish_name: { type: 'string' },
-          name: { type: 'string' },
-          description: { type: 'string' },
-          total_calories: { type: 'number' },
-          total_proteins: { type: 'number' },
-          total_fats: { type: 'number' },
-          total_carbs: { type: 'number' },
-          ai_tip: { type: 'string' },
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                name: { type: 'string' },
-                dish_name: { type: 'string' },
-                title: { type: 'string' },
-                unit: { type: 'string' },
-                amount: { type: 'number' },
-                weight_g: { type: 'number' },
-                calories: { type: 'number' },
-                proteins: { type: 'number' },
-                fats: { type: 'number' },
-                carbs: { type: 'number' },
-              },
-            },
-          },
-        },
-      };
-
-      const runVision = (force = false) => nutriApi.integrations.Core.InvokeLLM({
-        prompt: getVisionPrompt(force),
-        file_urls: [file_url],
-        model: 'gemini_3_flash',
-        response_json_schema: schema,
-      });
-
-      let normalized = normalizePlateResult(await runVision(false));
+      const normalized = await analyzePlatePhoto(file);
       if (!normalized.items.length) {
-        normalized = normalizePlateResult(await runVision(true));
-      }
-      if (!normalized.items.length) {
-        normalized = createApproximatePlateResult('Gemini не повернув структуровані дані, тому відкрито редагований приблизний варіант.');
-        toast.info('Gemini не дав структуру. Відкрила приблизний варіант для редагування.');
+        toast.info(text('Gemini не дав структуру. Відкрила приблизний варіант для редагування.', 'Gemini did not return structure. Opened an editable estimate.'));
       }
       onResult(normalized);
-      toast.success(`${normalized.description || 'Страву'} розпізнано. Можна відредагувати перед збереженням.`);
+      toast.success(text('Страву розпізнано. Можна відредагувати перед збереженням.', 'Meal recognized. You can edit before saving.'));
       close();
     } catch (err) {
       const fallback = createApproximatePlateResult(err?.message ? 'Vision тимчасово не відповів.' : '');
       onResult(fallback);
-      toast.info('Vision не відповів стабільно. Відкрила приблизний варіант для редагування.');
+      toast.info(text('Vision тимчасово не відповів. Відкрила приблизний варіант для редагування.', 'Vision did not respond reliably. Opened an editable estimate.'));
       close();
     } finally {
       setAnalyzing(false);

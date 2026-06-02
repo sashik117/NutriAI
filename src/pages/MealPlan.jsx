@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ShoppingList from '../components/meal-plan/ShoppingList';
 import { useLanguage } from '@/lib/LanguageContext';
+import { generateWeeklyMealPlan, regenerateMealPlanDay } from '@/services/mealPlanService';
 
 const PLAN_STORAGE_KEY = 'nutriai_weekly_meal_plan';
 const PLAN_CACHE_PREFIX = 'nutriai_weekly_meal_plan_mode_';
@@ -65,85 +66,6 @@ const SLOT_ALIASES = {
   snack2: 'snack',
   перекус: 'snack',
 };
-
-const mealSchema = {
-  type: 'object',
-  properties: {
-    slot: { type: 'string' },
-    title: { type: 'string' },
-    description: { type: 'string' },
-    grams: { type: 'number' },
-    calories: { type: 'number' },
-    proteins: { type: 'number' },
-    fats: { type: 'number' },
-    carbs: { type: 'number' },
-    ingredients: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          amount: { type: 'string' },
-          unit: { type: 'string' },
-          weight_g: { type: 'number' },
-          note: { type: 'string' },
-        },
-      },
-    },
-  },
-};
-
-const daySchema = {
-  type: 'object',
-  properties: {
-    day: { type: 'string' },
-    meals: {
-      type: 'array',
-      items: mealSchema,
-    },
-    total_calories: { type: 'number' },
-    total_proteins: { type: 'number' },
-    total_fats: { type: 'number' },
-    total_carbs: { type: 'number' },
-  },
-};
-
-function buildDietitianPrompt({ mode, profile, recentFoods, usedMeals = [], dayName = '', singleDay = false }) {
-  return `Ти професійний дієтолог і food stylist
-Поверни результат тільки у форматі JSON за схемою
-Створи ${singleDay ? `новий варіант раціону на день ${dayName}` : 'тижневий план харчування'} українською мовою як структуровані дані
-
-Тип плану: ${mode.label}
-Фокус плану: ${mode.prompt}
-Користувач в Україні, тому використовуй продукти, які реально купити в Сільпо, АТБ, Варусі або звичайному супермаркеті
-Ціль користувача: ${profile?.goal === 'lose' ? 'схуднення' : profile?.goal === 'gain' ? 'набір маси' : 'підтримка ваги'}
-Денна норма калорій: ${profile?.daily_calories || 2000}
-Білки: ${profile?.daily_proteins || 150} г
-Жири: ${profile?.daily_fats || 67} г
-Вуглеводи: ${profile?.daily_carbs || 200} г
-Продукти які користувач часто їсть: ${recentFoods.join(', ') || 'не вказано'}
-Уже використані страви, які не можна повторювати: ${usedMeals.join(', ') || 'немає'}
-
-Правила якості
-Ніколи не повторюй одну й ту саму страву в межах плану
-Кожен день має бути унікальним: різні білки, овочі, крупи, соуси і текстури
-Назви мають звучати апетитно, не як їдальня
-Класичний режим: боули, паста з тунцем та черрі, курка теріякі, лосось, індичка, сир кисломолочний, сезонні овочі
-Легкий режим: морепродукти, салати, смузі, легкі сири, йогурт, риба, індичка, багато зелені
-Рослинний режим: тофу, нут, сочевиця, авокадо, горіхи, квасоля, кіноа, булгур, хумус
-
-Правила даних
-${singleDay ? 'Поверни рівно 1 день' : 'Поверни рівно 7 днів'}
-Кожен день має рівно 4 страви зі slot: breakfast, snack, lunch, dinner
-Кожна страва має title, description, grams, calories, proteins, fats, carbs
-Кожна страва має ingredients як масив об'єктів з name, amount, unit, weight_g, note
-Кожен ingredient це реальний продукт з точною вагою
-Для списку покупок пиши тільки основні інгредієнти страви
-Не додавай воду, сіль, перець як окремі продукти
-Не додавай продукти, яких немає в конкретній страві
-Приклад ingredient: name Лосось, amount 200, unit г, weight_g 200, note Основний білок
-Не використовуй markdown, зірочки, крапки або маркери списку`;
-}
 
 function cleanText(value, fallback = '') {
   if (value && typeof value === 'object') {
@@ -688,24 +610,7 @@ export default function MealPlan() {
     setSelectedDayIndex(0);
 
     try {
-      const result = await nutriApi.integrations.Core.InvokeLLM({
-        prompt: buildDietitianPrompt({
-          mode,
-          profile,
-          recentFoods,
-          usedMeals: [],
-        }),
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            days: {
-              type: 'array',
-              items: daySchema,
-            },
-          },
-        },
-        model: 'gemini_3_flash',
-      });
+      const result = await generateWeeklyMealPlan({ mode, profile, recentFoods });
 
       const normalized = normalizePlan({ ...result, mode: mode.key, generatedAt: new Date().toISOString(), selectedMeals: [] }, mode.key);
       setPlan(normalized);
@@ -728,18 +633,7 @@ export default function MealPlan() {
 
     setRegeneratingDay(true);
     try {
-      const result = await nutriApi.integrations.Core.InvokeLLM({
-        prompt: buildDietitianPrompt({
-          mode,
-          profile,
-          recentFoods,
-          usedMeals,
-          dayName: selectedDay.day,
-          singleDay: true,
-        }),
-        response_json_schema: daySchema,
-        model: 'gemini_3_flash',
-      });
+      const result = await regenerateMealPlanDay({ mode, profile, recentFoods, usedMeals, dayName: selectedDay.day });
 
       const nextDay = normalizeDay(result?.day ? result : { ...result, day: selectedDay.day }, selectedDayIndex, mode.key);
       const dayPrefix = `${selectedDayIndex}:${mode.key}:`;
