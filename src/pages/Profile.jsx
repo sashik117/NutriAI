@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
-import { calculateDailyNeeds } from '../lib/kbjuCalculator';
+import { calculateDailyNeeds } from '@/domain/nutrition/MacroCalculator';
 import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/LanguageContext';
 import ActivityHeatmap from '../components/dashboard/ActivityHeatmap';
+import { useProfileAutosave } from '@/hooks/useProfileAutosave';
 
 const activityLabelsUk = {
   sedentary: 'Сидячий',
@@ -87,8 +88,6 @@ export default function Profile() {
   const { user, logout } = useAuth();
   const { language, isEnglish, setLanguage, text } = useLanguage();
   const initializedRef = useRef(false);
-  const autosaveTimerRef = useRef(null);
-  const [saveState, setSaveState] = useState('idle');
 
   const { data: profiles, isLoading } = useQuery({
     queryKey: ['userProfile'],
@@ -131,43 +130,7 @@ export default function Profile() {
     targetWeight
   );
 
-  useEffect(() => {
-    if (isLoading) return;
-    if (!form.age || !form.weight || !form.target_weight || !form.height) return;
-
-    clearTimeout(autosaveTimerRef.current);
-    setSaveState('saving');
-    autosaveTimerRef.current = setTimeout(async () => {
-      const data = {
-        ...form,
-        age: toNumber(form.age),
-        weight: toNumber(form.weight),
-        target_weight: toNumber(form.target_weight, toNumber(form.weight)),
-        height: toNumber(form.height),
-        goal: calculated.goal,
-        daily_calories: calculated.calories,
-        daily_proteins: calculated.proteins,
-        daily_fats: calculated.fats,
-        daily_carbs: calculated.carbs,
-        daily_water_ml: calculated.water,
-      };
-
-      try {
-        if (existing) {
-          await nutriApi.entities.UserProfile.update(existing.id, data);
-        } else {
-          await nutriApi.entities.UserProfile.create(data);
-        }
-        queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-        setSaveState('saved');
-      } catch (error) {
-        console.error(error);
-        setSaveState('error');
-      }
-    }, 700);
-
-    return () => clearTimeout(autosaveTimerRef.current);
-  }, [form, calculated.goal, calculated.calories, calculated.proteins, calculated.fats, calculated.carbs, calculated.water, existing, isLoading, queryClient]);
+  const saveState = useProfileAutosave({ form, calculated, existing, isLoading, queryClient });
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
   const activityLabels = isEnglish ? activityLabelsEn : activityLabelsUk;

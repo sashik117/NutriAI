@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { refineFoodAnalysis } from '@/services/aiNutritionService';
 
 export default function AiRefinement({ currentResult, onRefined }) {
   const [refinement, setRefinement] = useState('');
@@ -13,70 +13,38 @@ export default function AiRefinement({ currentResult, onRefined }) {
     if (!refinement.trim()) return;
     setLoading(true);
 
-    const result = await nutriApi.integrations.Core.InvokeLLM({
-      prompt: `Користувач вже зробив запис їжі і хоче уточнити його.
-
-Поточний запис (JSON):
-${JSON.stringify(currentResult, null, 2)}
-
-Уточнення від користувача: "${refinement}"
-
-Скоригуй відповідні позиції та перерахуй тотали. Поверни той самий JSON-формат з оновленими значеннями. Не додавай нові продукти якщо не просять, лише коригуй існуючі.`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          total_calories: { type: 'number' },
-          total_proteins: { type: 'number' },
-          total_fats: { type: 'number' },
-          total_carbs: { type: 'number' },
-          ai_tip: { type: 'string' },
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                name: { type: 'string' },
-                weight_g: { type: 'number' },
-                calories: { type: 'number' },
-                proteins: { type: 'number' },
-                fats: { type: 'number' },
-                carbs: { type: 'number' },
-              },
-            },
-          },
-        },
-      },
-      model: 'gemini_3_flash',
-    });
-
-    onRefined(result);
-    setRefinement('');
-    setLoading(false);
+    try {
+      const result = await refineFoodAnalysis(currentResult, refinement);
+      onRefined(result);
+      setRefinement('');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-muted/50 rounded-xl p-3 space-y-2"
+      className="space-y-2 rounded-xl bg-muted/50 p-3"
     >
-      <p className="text-xs font-semibold text-muted-foreground">✏️ Уточнити запис</p>
+      <p className="text-xs font-semibold text-muted-foreground">Уточнити запис</p>
       <div className="flex gap-2">
         <Input
-          placeholder='Напр. "Яйця були смажені" або "Додай ложку сметани"'
+          placeholder='Напр. "яйця були смажені" або "додай ложку сметани"'
           value={refinement}
-          onChange={e => setRefinement(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && refine()}
-          className="rounded-xl text-sm h-9"
+          onChange={(event) => setRefinement(event.target.value)}
+          onKeyDown={(event) => event.key === 'Enter' && refine()}
+          className="h-9 rounded-xl text-sm"
         />
         <Button
           size="icon"
           variant="outline"
           onClick={refine}
           disabled={loading || !refinement.trim()}
-          className="rounded-xl h-9 w-9 shrink-0"
+          className="h-9 w-9 shrink-0 rounded-xl"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
       </div>
     </motion.div>
