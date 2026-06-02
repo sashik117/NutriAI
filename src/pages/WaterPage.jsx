@@ -125,9 +125,11 @@ export default function WaterPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <button onClick={saveEditing} className="rounded-lg p-1.5 text-green-600 hover:bg-muted">
+                        <span className="sr-only">{text('Зберегти запис води', 'Save water entry')}</span>
                         <Check className="h-4 w-4" />
                       </button>
                       <button onClick={() => setEditingId(null)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+                        <span className="sr-only">{text('Скасувати редагування води', 'Cancel water edit')}</span>
                         <X className="h-4 w-4" />
                       </button>
                     </div>
@@ -141,9 +143,11 @@ export default function WaterPage() {
                     <div className="flex items-center gap-1">
                       <span className="mr-1 text-xs text-muted-foreground">{format(new Date(log.created_date), 'HH:mm')}</span>
                       <button onClick={() => startEditing(log)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+                        <span className="sr-only">{text('Редагувати запис води', 'Edit water entry')}</span>
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button onClick={() => deleteWaterMutation.mutate(log.id)} className="rounded-lg p-1.5 text-red-500 hover:bg-muted">
+                        <span className="sr-only">{text('Видалити запис води', 'Delete water entry')}</span>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>

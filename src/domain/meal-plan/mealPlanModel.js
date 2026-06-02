@@ -280,7 +280,7 @@ function normalizeIngredients(rawIngredients, mealTitle) {
         if (!item.name) return false;
         const itemKey = canonicalFoodName(item.name);
         const mealKey = canonicalFoodName(mealTitle);
-        return itemKey && itemKey !== mealKey && !mealKey.includes(itemKey);
+        return itemKey && itemKey !== mealKey;
       });
     if (normalized.length) return normalized;
   }

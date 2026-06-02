@@ -6,6 +6,7 @@ import {
   summarizeFoodLogs,
   summarizeWaterLogs,
 } from '../src/domain/dashboard/dashboardModel.js';
+import { normalizePlan } from '../src/domain/meal-plan/mealPlanModel.js';
 import { sanitizeNickname, sanitizeVerificationCode, validateRegistration } from '../src/domain/auth/authModel.js';
 import {
   buildActivityPayload,
@@ -125,5 +126,22 @@ const shoppingList = buildListFromMeals([
 const shoppingItems = shoppingList.categories.flatMap((category) => category.items);
 assert.equal(shoppingItems.find((item) => item.name === 'Oats')?.amount, 90);
 assert.equal(shoppingItems.find((item) => item.name === 'Milk')?.amount, 300);
+
+const normalizedPlan = normalizePlan({
+  days: [{
+    day: 'Понеділок',
+    meals: [{
+      slot: 'lunch',
+      title: 'Рис з куркою',
+      calories: 500,
+      ingredients: [
+        { name: 'Рис', amount: '90', unit: 'г', weight_g: 90 },
+        { name: 'Куряче філе', amount: '150', unit: 'г', weight_g: 150 },
+      ],
+    }],
+  }],
+}, 'classic');
+const lunchIngredients = normalizedPlan.days[0].meals.find((meal) => meal.slot === 'lunch').ingredients;
+assert.ok(lunchIngredients.some((item) => item.name === 'Рис'), 'meal plan should keep rice as a real ingredient');
 
 console.log('domain smoke ok');

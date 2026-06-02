@@ -149,6 +149,7 @@ export default function Profile() {
                 <Input
                   inputMode="decimal"
                   value={form[key]}
+                  aria-label={label}
                   placeholder={placeholder}
                   onChange={(event) => update(key, event.target.value.replace(',', '.'))}
                   className="rounded-xl"

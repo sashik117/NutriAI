@@ -77,6 +77,7 @@ export default function ShoppingList({ day, dayIndex = 0, meals = [], activeMeal
                       <button
                         type="button"
                         onClick={() => updateItem(category.id, item.id, { checked: !item.checked })}
+                        aria-label={`${item.checked ? text('Зняти позначку', 'Uncheck') : text('Позначити купленим', 'Mark as bought')} ${item.name}`}
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${item.checked ? 'border-primary bg-primary text-primary-foreground' : 'border-border'}`}
                       >
                         {item.checked && <Check className="h-3 w-3" />}
@@ -85,7 +86,13 @@ export default function ShoppingList({ day, dayIndex = 0, meals = [], activeMeal
                         <p className={`truncate text-sm font-semibold ${item.checked ? 'line-through' : ''}`}>{item.name}</p>
                         <p className="text-xs text-muted-foreground">{item.displayAmount}</p>
                       </div>
-                      <button type="button" className="rounded-full p-2 text-muted-foreground hover:text-destructive" onClick={() => deleteItem(category.id, item.id)} title={text('Видалити', 'Delete')}>
+                      <button
+                        type="button"
+                        className="rounded-full p-2 text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteItem(category.id, item.id)}
+                        aria-label={`${text('Видалити', 'Delete')} ${item.name}`}
+                        title={text('Видалити', 'Delete')}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>

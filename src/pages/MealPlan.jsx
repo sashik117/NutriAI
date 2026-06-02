@@ -182,6 +182,7 @@ export default function MealPlan() {
                               variant={selected ? 'default' : 'outline'}
                               className="h-9 w-9 rounded-full"
                               onClick={() => toggleMeal(meal)}
+                              aria-label={`${selected ? text('Обрано', 'Selected') : text('Вибрати страву', 'Select meal')} ${displayMealTitle(meal.title, isEnglish)}`}
                               title={selected ? text('Вибрано', 'Selected') : text('Вибрати страву', 'Select meal')}
                             >
                               {selected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -192,6 +193,7 @@ export default function MealPlan() {
                                 variant="outline"
                                 className="h-9 w-9 rounded-full"
                                 onClick={() => focusMealProducts(meal)}
+                                aria-label={`${text('Продукти для страви', 'Products for meal')} ${displayMealTitle(meal.title, isEnglish)}`}
                                 title={text('Продукти для цієї страви', 'Products for this meal')}
                               >
                                 <ArrowRight className="h-4 w-4" />
