@@ -1,5 +1,4 @@
 ﻿import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -8,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera, Coffee, Cookie, Loader2, Moon, Pencil, Search, Send, Sparkles, Sun } from 'lucide-react';
 import { toast } from 'sonner';
-
 import FoodResultCard from '../components/food/FoodResultCard';
 import QuickPresets from '../components/food/QuickPresets';
 import VoiceButton from '../components/food/VoiceButton';
@@ -23,6 +21,8 @@ import MealCard from '../components/dashboard/MealCard';
 import { useLanguage } from '@/lib/LanguageContext';
 import { analyzeFoodDescription } from '@/services/aiNutritionService';
 import { buildFoodLogPayload, normalizeFoodItem, normalizeFoodResult } from '@/services/foodLogService';
+import { userProfileRepository, foodLogRepository } from '@/services/repositories';
+
 
 const MEAL_ORDER = [
   { key: 'breakfast', label: 'РЎРЅС–РґР°РЅРѕРє', emoji: 'рџҐћ', Icon: Coffee, tone: 'bg-amber-100 text-amber-700 border-amber-200' },
@@ -66,13 +66,13 @@ export default function FoodLog() {
 
   const { data: profiles } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => nutriApi.entities.UserProfile.list(),
+    queryFn: () => userProfileRepository.list(),
     initialData: [],
   });
 
   const { data: todayLogs } = useQuery({
     queryKey: ['foodLogs', today],
-    queryFn: () => nutriApi.entities.FoodLog.filter({ date: today }),
+    queryFn: () => foodLogRepository.filter({ date: today }),
     initialData: [],
   });
 
@@ -136,7 +136,7 @@ export default function FoodLog() {
   };
 
   const createFoodLog = async (result) => {
-    await nutriApi.entities.FoodLog.create(buildFoodLogPayload({ result, mealType, date: today }));
+    await foodLogRepository.create(buildFoodLogPayload({ result, mealType, date: today }));
     queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
   };
 

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, BellOff, Droplets } from 'lucide-react';
-import { nutriApi } from '@/api/nutriApi';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/LanguageContext';
+import { waterLogRepository } from '@/services/repositories';
 
 const REMINDER_INTERVALS = [30, 60, 90, 120]; // minutes
 
@@ -23,7 +23,7 @@ export default function WaterReminder({ currentMl, goalMl }) {
 
   const logWater = async (ml) => {
     try {
-      await nutriApi.entities.WaterLog.create({ amount_ml: ml, date: today });
+      await waterLogRepository.create({ amount_ml: ml, date: today });
       queryClient.invalidateQueries({ queryKey: ['waterLogs'] });
       toast.success(text(`💧 +${ml} мл додано!`, `💧 +${ml} ml added!`));
       setShowInApp(false);

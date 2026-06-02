@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -9,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Plus, Ruler } from 'lucide-react';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { bodyMeasurementRepository } from '@/services/repositories';
+
 
 export default function BodyMeasurements() {
   const [form, setForm] = useState({ waist: '', hips: '', chest: '' });
@@ -18,12 +19,12 @@ export default function BodyMeasurements() {
 
   const { data: measurements } = useQuery({
     queryKey: ['bodyMeasurements'],
-    queryFn: () => nutriApi.entities.BodyMeasurement.list('-date', 30),
+    queryFn: () => bodyMeasurementRepository.list('-date', 30),
     initialData: [],
   });
 
   const addMutation = useMutation({
-    mutationFn: (data) => nutriApi.entities.BodyMeasurement.create({ ...data, date: today }),
+    mutationFn: (data) => bodyMeasurementRepository.create({ ...data, date: today }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bodyMeasurements'] });
       toast.success('Заміри збережено ✅');

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -8,6 +7,7 @@ import { Check, Droplets, Minus, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import WaterReminder from '../components/water/WaterReminder';
 import { useLanguage } from '@/lib/LanguageContext';
+import { userProfileRepository, waterLogRepository } from '@/services/repositories';
 
 export default function WaterPage() {
   const { text } = useLanguage();
@@ -19,13 +19,13 @@ export default function WaterPage() {
 
   const { data: profiles } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => nutriApi.entities.UserProfile.list(),
+    queryFn: () => userProfileRepository.list(),
     initialData: [],
   });
 
   const { data: waterLogs } = useQuery({
     queryKey: ['waterLogs', today],
-    queryFn: () => nutriApi.entities.WaterLog.filter({ date: today }),
+    queryFn: () => waterLogRepository.filter({ date: today }),
     initialData: [],
   });
 
@@ -34,7 +34,7 @@ export default function WaterPage() {
   const progress = Math.min(totalWater / goal, 1);
 
   const addWaterMutation = useMutation({
-    mutationFn: (amount) => nutriApi.entities.WaterLog.create({ amount_ml: amount, date: today }),
+    mutationFn: (amount) => waterLogRepository.create({ amount_ml: amount, date: today }),
     onSuccess: (_, amount) => {
       queryClient.invalidateQueries({ queryKey: ['waterLogs', today] });
       toast.success(text(`+${amount} мл додано`, `+${amount} ml added`));
@@ -43,7 +43,7 @@ export default function WaterPage() {
   });
 
   const updateWaterMutation = useMutation({
-    mutationFn: ({ id, amount }) => nutriApi.entities.WaterLog.update(id, { amount_ml: amount }),
+    mutationFn: ({ id, amount }) => waterLogRepository.update(id, { amount_ml: amount }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['waterLogs', today] });
       toast.success(text('Запис води оновлено', 'Water entry updated'));
@@ -54,7 +54,7 @@ export default function WaterPage() {
   });
 
   const deleteWaterMutation = useMutation({
-    mutationFn: (id) => nutriApi.entities.WaterLog.delete(id),
+    mutationFn: (id) => waterLogRepository.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['waterLogs', today] });
       toast.success(text('Запис води видалено', 'Water entry deleted'));

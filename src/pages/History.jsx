@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useQuery } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -8,6 +7,8 @@ import { Calendar, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MealCard from '../components/dashboard/MealCard';
 import { generateDayNutritionSummary } from '@/services/progressInsightService';
+import { userProfileRepository, foodLogRepository, waterLogRepository } from '@/services/repositories';
+
 
 export default function History() {
   const [selectedDay, setSelectedDay] = useState(0); // 0 = today, 1 = yesterday, etc
@@ -18,19 +19,19 @@ export default function History() {
 
   const { data: profiles } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => nutriApi.entities.UserProfile.list(),
+    queryFn: () => userProfileRepository.list(),
     initialData: [],
   });
 
   const { data: foodLogs, isLoading } = useQuery({
     queryKey: ['foodLogs', date],
-    queryFn: () => nutriApi.entities.FoodLog.filter({ date }),
+    queryFn: () => foodLogRepository.filter({ date }),
     initialData: [],
   });
 
   const { data: waterLogs } = useQuery({
     queryKey: ['waterLogs', date],
-    queryFn: () => nutriApi.entities.WaterLog.filter({ date }),
+    queryFn: () => waterLogRepository.filter({ date }),
     initialData: [],
   });
 

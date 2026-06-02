@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useQuery } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useLanguage } from '@/lib/LanguageContext';
 import { generatePersonalChallenge } from '@/services/challengeService';
+import { userProfileRepository, foodLogRepository, waterLogRepository, weightLogRepository, achievementRepository } from '@/services/repositories';
 
 const BADGES = [
   { type: 'first_log', emoji: '🍽️', title: 'Перший крок', description: 'Перший запис їжі' },
@@ -57,11 +57,11 @@ export default function Gamification() {
   const [challenge, setChallenge] = useState(null);
   const [freezeCount, setFreezeCount] = useState(() => Number(localStorage.getItem('kbju_streak_freeze') || '1'));
 
-  const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => nutriApi.entities.UserProfile.list(), initialData: [] });
-  const { data: foodLogs } = useQuery({ queryKey: ['allFoodLogsGamif'], queryFn: () => nutriApi.entities.FoodLog.list('-date', 300), initialData: [] });
-  const { data: waterLogs } = useQuery({ queryKey: ['allWaterLogsGamif'], queryFn: () => nutriApi.entities.WaterLog.list('-date', 120), initialData: [] });
-  const { data: weightLogs } = useQuery({ queryKey: ['weightLogs'], queryFn: () => nutriApi.entities.WeightLog.list('-date', 80), initialData: [] });
-  const { data: achievements, refetch: refetchAchievements } = useQuery({ queryKey: ['achievements'], queryFn: () => nutriApi.entities.Achievement.list(), initialData: [] });
+  const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => userProfileRepository.list(), initialData: [] });
+  const { data: foodLogs } = useQuery({ queryKey: ['allFoodLogsGamif'], queryFn: () => foodLogRepository.list('-date', 300), initialData: [] });
+  const { data: waterLogs } = useQuery({ queryKey: ['allWaterLogsGamif'], queryFn: () => waterLogRepository.list('-date', 120), initialData: [] });
+  const { data: weightLogs } = useQuery({ queryKey: ['weightLogs'], queryFn: () => weightLogRepository.list('-date', 80), initialData: [] });
+  const { data: achievements, refetch: refetchAchievements } = useQuery({ queryKey: ['achievements'], queryFn: () => achievementRepository.list(), initialData: [] });
 
   const profile = profiles[0];
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -102,7 +102,7 @@ export default function Gamification() {
     if (toUnlock.length > 0) {
       Promise.all(
         toUnlock.map((badge) =>
-          nutriApi.entities.Achievement.create({
+          achievementRepository.create({
             type: badge.type,
             title: badge.title,
             description: badge.description,

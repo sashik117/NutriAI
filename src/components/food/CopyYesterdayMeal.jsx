@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { foodLogRepository } from '@/services/repositories';
+
 
 const MEAL_LABELS = {
   breakfast: '☕ Сніданок',
@@ -24,7 +25,7 @@ export default function CopyYesterdayMeal() {
 
   const { data: yesterdayLogs } = useQuery({
     queryKey: ['foodLogs', yesterday],
-    queryFn: () => nutriApi.entities.FoodLog.filter({ date: yesterday }),
+    queryFn: () => foodLogRepository.filter({ date: yesterday }),
     initialData: [],
   });
 
@@ -32,7 +33,7 @@ export default function CopyYesterdayMeal() {
 
   const copyMeal = async (log) => {
     setCopying(log.id);
-    await nutriApi.entities.FoodLog.create({
+    await foodLogRepository.create({
       meal_type: log.meal_type,
       description: log.description,
       items: log.items,

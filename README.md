@@ -127,6 +127,7 @@ NutriAI is organized as a small production-style fullstack app:
 - `server/domain/nutritionRules` contains backend nutrition fallback, schema coercion, and safety rules for AI output.
 - `src/domain/nutrition/MacroCalculator` and `FoodItem` contain domain math plus food item/result normalization.
 - `src/services/*` contains frontend service logic for AI nutrition, meal plans, voice transcription, barcode/plate vision, product search, DTO shaping, and API-facing workflows.
+- `src/services/repositories` keeps PostgreSQL entity access behind a small repository layer instead of calling API entities directly from UI screens.
 - `src/hooks/*` keeps form behavior and autosave logic separate from visual components.
 - UI components stay focused on rendering, touch interactions, and user feedback.
 

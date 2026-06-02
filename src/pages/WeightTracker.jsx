@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -14,6 +13,7 @@ import {
 } from 'recharts';
 import BodyMeasurements from '../components/weight/BodyMeasurement';
 import { generateWeightForecast } from '@/services/progressInsightService';
+import { userProfileRepository, weightLogRepository } from '@/services/repositories';
 
 export default function WeightTracker() {
   const [newWeight, setNewWeight] = useState('');
@@ -24,20 +24,20 @@ export default function WeightTracker() {
 
   const { data: weightLogs } = useQuery({
     queryKey: ['weightLogs'],
-    queryFn: () => nutriApi.entities.WeightLog.list('-date', 60),
+    queryFn: () => weightLogRepository.list('-date', 60),
     initialData: [],
   });
 
   const { data: profiles } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => nutriApi.entities.UserProfile.list(),
+    queryFn: () => userProfileRepository.list(),
     initialData: [],
   });
 
   const profile = profiles[0];
 
   const addMutation = useMutation({
-    mutationFn: (weight) => nutriApi.entities.WeightLog.create({ weight, date: today }),
+    mutationFn: (weight) => weightLogRepository.create({ weight, date: today }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weightLogs'] });
       toast.success('Вага збережена! ✅');

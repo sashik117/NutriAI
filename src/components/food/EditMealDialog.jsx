@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Save, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { foodLogRepository } from '@/services/repositories';
 
 const emptyItem = { name: '', unit: 'g', amount: 100, weight_g: 100, calories: 0, proteins: 0, fats: 0, carbs: 0 };
 const normalizeItem = (item) => {
@@ -42,7 +42,7 @@ export default function EditMealDialog({ log, open, onClose, onSaved }) {
 
   const handleSave = async () => {
     setSaving(true);
-    await nutriApi.entities.FoodLog.update(log.id, {
+    await foodLogRepository.update(log.id, {
       meal_type: mealType,
       items: items.map(normalizeItem),
       total_calories: Math.round(totals.calories),
@@ -57,7 +57,7 @@ export default function EditMealDialog({ log, open, onClose, onSaved }) {
   };
 
   const handleDelete = async () => {
-    await nutriApi.entities.FoodLog.delete(log.id);
+    await foodLogRepository.delete(log.id);
     toast.success('Видалено');
     onSaved();
     onClose();

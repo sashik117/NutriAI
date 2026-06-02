@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -14,6 +13,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/LanguageContext';
 import ActivityHeatmap from '../components/dashboard/ActivityHeatmap';
 import { useProfileAutosave } from '@/hooks/useProfileAutosave';
+import { userProfileRepository, foodLogRepository } from '@/services/repositories';
 
 const activityLabelsUk = {
   sedentary: 'Сидячий',
@@ -91,13 +91,13 @@ export default function Profile() {
 
   const { data: profiles, isLoading } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => nutriApi.entities.UserProfile.list(),
+    queryFn: () => userProfileRepository.list(),
     initialData: [],
   });
 
   const { data: allFoodLogs } = useQuery({
     queryKey: ['profileFoodActivity'],
-    queryFn: () => nutriApi.entities.FoodLog.list('-date', 300),
+    queryFn: () => foodLogRepository.list('-date', 300),
     initialData: [],
   });
 

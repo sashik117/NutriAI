@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { ArrowRight, CalendarDays, Check, Loader2, Plus, Sparkles } from 'lucide-react';
@@ -8,6 +7,7 @@ import { toast } from 'sonner';
 import ShoppingList from '../components/meal-plan/ShoppingList';
 import { useLanguage } from '@/lib/LanguageContext';
 import { generateWeeklyMealPlan, regenerateMealPlanDay } from '@/services/mealPlanService';
+import { userProfileRepository, foodLogRepository, mealPlanRepository } from '@/services/repositories';
 
 const PLAN_STORAGE_KEY = 'nutriai_weekly_meal_plan';
 const PLAN_CACHE_PREFIX = 'nutriai_weekly_meal_plan_mode_';
@@ -481,17 +481,17 @@ export default function MealPlan() {
 
   const { data: profiles } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => nutriApi.entities.UserProfile.list(),
+    queryFn: () => userProfileRepository.list(),
     initialData: [],
   });
   const { data: recentLogs } = useQuery({
     queryKey: ['allFoodLogsGamif'],
-    queryFn: () => nutriApi.entities.FoodLog.list('-date', 50),
+    queryFn: () => foodLogRepository.list('-date', 50),
     initialData: [],
   });
   const { data: savedPlans, isLoading: loadingSavedPlan } = useQuery({
     queryKey: ['mealPlans'],
-    queryFn: () => nutriApi.entities.MealPlan.list('-updated_date', 1),
+    queryFn: () => mealPlanRepository.list('-updated_date', 1),
     initialData: [],
   });
 
@@ -565,8 +565,8 @@ export default function MealPlan() {
     try {
       const payload = { title: `План ${activeMode.label}`, plan: planToSave, selected_day_index: nextSelectedDayIndex };
       const saved = currentPlanId
-        ? await nutriApi.entities.MealPlan.update(currentPlanId, payload)
-        : await nutriApi.entities.MealPlan.create(payload);
+        ? await mealPlanRepository.update(currentPlanId, payload)
+        : await mealPlanRepository.create(payload);
       setPlanId(saved.id);
       queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
       return saved;

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -17,6 +16,7 @@ import EditMealDialog from '../components/food/EditMealDialog';
 import ThemeToggle from '../components/layout/ThemeToggle';
 import HealthConnect from '../components/health/HealthConnect';
 import { useLanguage } from '@/lib/LanguageContext';
+import { userProfileRepository, foodLogRepository, waterLogRepository } from '@/services/repositories';
 
 export default function Dashboard() {
   const { isEnglish, text } = useLanguage();
@@ -30,7 +30,7 @@ export default function Dashboard() {
 
   const { data: profiles } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => nutriApi.entities.UserProfile.list(),
+    queryFn: () => userProfileRepository.list(),
     initialData: [],
   });
 
@@ -38,24 +38,24 @@ export default function Dashboard() {
 
   const { data: foodLogs } = useQuery({
     queryKey: ['foodLogs', dateStr],
-    queryFn: () => nutriApi.entities.FoodLog.filter({ date: dateStr }),
+    queryFn: () => foodLogRepository.filter({ date: dateStr }),
     initialData: [],
   });
 
   const { data: allFoodLogs } = useQuery({
     queryKey: ['allFoodLogsForDots'],
-    queryFn: () => nutriApi.entities.FoodLog.list('-date', 300),
+    queryFn: () => foodLogRepository.list('-date', 300),
     initialData: [],
   });
 
   const { data: waterLogs } = useQuery({
     queryKey: ['waterLogs', dateStr],
-    queryFn: () => nutriApi.entities.WaterLog.filter({ date: dateStr }),
+    queryFn: () => waterLogRepository.filter({ date: dateStr }),
     initialData: [],
   });
 
   const addWaterMutation = useMutation({
-    mutationFn: (amount) => nutriApi.entities.WaterLog.create({ amount_ml: amount, date: today }),
+    mutationFn: (amount) => waterLogRepository.create({ amount_ml: amount, date: today }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['waterLogs', today] }),
   });
 

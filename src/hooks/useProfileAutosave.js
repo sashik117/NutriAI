@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { nutriApi } from '@/api/nutriApi';
+import { userProfileRepository } from '@/services/repositories';
 
 const toNumber = (value, fallback = 0) => {
   if (value === '' || value === null || value === undefined) return fallback;
@@ -37,9 +37,9 @@ export function useProfileAutosave({ form, calculated, existing, isLoading, quer
       try {
         const data = buildProfilePayload(form, calculated);
         if (existing) {
-          await nutriApi.entities.UserProfile.update(existing.id, data);
+          await userProfileRepository.update(existing.id, data);
         } else {
-          await nutriApi.entities.UserProfile.create(data);
+          await userProfileRepository.create(data);
         }
         queryClient.invalidateQueries({ queryKey: ['userProfile'] });
         setSaveState('saved');
