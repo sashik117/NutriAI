@@ -1,5 +1,3 @@
-import { useState, useEffect, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -7,13 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, LogOut } from 'lucide-react';
-import { toast } from 'sonner';
-import { calculateDailyNeeds } from '@/domain/nutrition/MacroCalculator';
-import { useAuth } from '@/lib/AuthContext';
-import { useLanguage } from '@/lib/LanguageContext';
 import ActivityHeatmap from '../components/dashboard/ActivityHeatmap';
-import { useProfileAutosave } from '@/hooks/useProfileAutosave';
-import { userProfileRepository, foodLogRepository } from '@/services/repositories';
+import { useProfilePage } from '@/hooks/useProfilePage';
 
 const activityLabelsUk = {
   sedentary: 'Сидячий',
@@ -67,83 +60,27 @@ const personalityLabelsEn = {
   lofi_friend: 'LoFi friend',
 };
 
-const defaultForm = {
-  gender: 'male',
-  age: '',
-  weight: '',
-  target_weight: '',
-  height: '',
-  activity_level: 'moderate',
-  ai_personality: 'lofi_friend',
-};
-
-const toNumber = (value, fallback = 0) => {
-  if (value === '' || value === null || value === undefined) return fallback;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
 export default function Profile() {
-  const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
-  const { language, isEnglish, setLanguage, text } = useLanguage();
-  const initializedRef = useRef(false);
-
-  const { data: profiles, isLoading } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => userProfileRepository.list(),
-    initialData: [],
-  });
-
-  const { data: allFoodLogs } = useQuery({
-    queryKey: ['profileFoodActivity'],
-    queryFn: () => foodLogRepository.list('-date', 300),
-    initialData: [],
-  });
-
-  const existing = profiles[0];
-  const [form, setForm] = useState(defaultForm);
-
-  useEffect(() => {
-    if (existing && !initializedRef.current) {
-      setForm({
-        gender: existing.gender || 'male',
-        age: existing.age ? String(existing.age) : '',
-        weight: existing.weight ? String(existing.weight) : '',
-        target_weight: existing.target_weight ? String(existing.target_weight) : existing.weight ? String(existing.weight) : '',
-        height: existing.height ? String(existing.height) : '',
-        activity_level: existing.activity_level || 'moderate',
-        ai_personality: existing.ai_personality || 'lofi_friend',
-      });
-      initializedRef.current = true;
-    }
-  }, [existing]);
-
-  const weight = toNumber(form.weight, 70);
-  const targetWeight = toNumber(form.target_weight, weight);
-  const calculated = calculateDailyNeeds(
-    form.gender,
+  const {
+    language,
+    isEnglish,
+    setLanguage,
+    text,
+    form,
+    update,
+    calculated,
+    profileMeta,
+    allFoodLogs,
     weight,
-    toNumber(form.height, 170),
-    toNumber(form.age, 25),
-    form.activity_level,
-    targetWeight
-  );
+    targetWeight,
+    isLoading,
+    logoutProfile,
+  } = useProfilePage();
 
-  const saveState = useProfileAutosave({ form, calculated, existing, isLoading, queryClient });
-
-  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
   const activityLabels = isEnglish ? activityLabelsEn : activityLabelsUk;
   const goalLabels = isEnglish ? goalLabelsEn : goalLabelsUk;
   const goalHints = isEnglish ? goalHintsEn : goalHintsUk;
   const personalityLabels = isEnglish ? personalityLabelsEn : personalityLabelsUk;
-  const profileMeta = [
-    user?.nickname || user?.name,
-    user?.email,
-    saveState === 'saving' ? text('автозбереження', 'autosaving') : '',
-    saveState === 'saved' ? text('збережено', 'saved') : '',
-    saveState === 'error' ? text('помилка автозбереження', 'autosave error') : '',
-  ].filter(Boolean).join(' · ');
 
   if (isLoading) {
     return (
@@ -280,11 +217,7 @@ export default function Profile() {
       <Button
         variant="ghost"
         className="w-full text-muted-foreground"
-        onClick={() => {
-          logout();
-          queryClient.clear();
-          toast.success(text('Ви вийшли з профілю', 'You are logged out'));
-        }}
+        onClick={logoutProfile}
       >
         <LogOut className="mr-2 h-4 w-4" /> {text('Вийти', 'Log out')}
       </Button>

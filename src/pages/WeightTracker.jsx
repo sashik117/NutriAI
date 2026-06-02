@@ -1,74 +1,33 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, TrendingDown, TrendingUp, Minus, Scale, Sparkles, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import BodyMeasurements from '../components/weight/BodyMeasurement';
-import { generateWeightForecast } from '@/services/progressInsightService';
-import { userProfileRepository, weightLogRepository } from '@/services/repositories';
+import { useWeightTrackerPage } from '@/hooks/useWeightTrackerPage';
 
 export default function WeightTracker() {
-  const [newWeight, setNewWeight] = useState('');
-  const [forecast, setForecast] = useState('');
-  const [loadingForecast, setLoadingForecast] = useState(false);
-  const queryClient = useQueryClient();
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const {
+    newWeight,
+    setNewWeight,
+    forecast,
+    setForecast,
+    loadingForecast,
+    weightLogs,
+    profile,
+    todayLog,
+    chartData,
+    stats,
+    addMutation,
+    generateForecast,
+  } = useWeightTrackerPage();
 
-  const { data: weightLogs } = useQuery({
-    queryKey: ['weightLogs'],
-    queryFn: () => weightLogRepository.list('-date', 60),
-    initialData: [],
-  });
-
-  const { data: profiles } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => userProfileRepository.list(),
-    initialData: [],
-  });
-
-  const profile = profiles[0];
-
-  const addMutation = useMutation({
-    mutationFn: (weight) => weightLogRepository.create({ weight, date: today }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['weightLogs'] });
-      toast.success('Вага збережена! ✅');
-      setNewWeight('');
-    },
-  });
-
-  const todayLog = weightLogs.find((l) => l.date === today);
-
-  // Sort and deduplicate by date for chart
-  const chartData = [...weightLogs]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-30)
-    .map((l) => ({
-      date: format(new Date(l.date), 'd MMM', { locale: uk }),
-      weight: l.weight,
-    }));
-
-  const latestWeight = weightLogs[0]?.weight;
-  const firstWeight = weightLogs[weightLogs.length - 1]?.weight;
-  const diff = latestWeight && firstWeight ? (latestWeight - firstWeight).toFixed(1) : null;
-  const targetWeight = profile?.weight;
-
-  const generateForecast = async () => {
-    setLoadingForecast(true);
-    try {
-      setForecast(await generateWeightForecast({ chartData, latestWeight, profile }));
-    } finally {
-      setLoadingForecast(false);
-    }
-  };
+  const { latestWeight, diff, targetWeight } = stats;
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload?.length) {
