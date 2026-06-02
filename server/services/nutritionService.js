@@ -1,17 +1,17 @@
-export class NutritionService {
-  constructor({ createFallbackFromSchema, normalizeSchemaResult, normalizeNutritionResult }) {
-    this.createFallbackFromSchema = createFallbackFromSchema;
-    this.normalizeSchemaResult = normalizeSchemaResult;
-    this.normalizeNutritionResult = normalizeNutritionResult;
-  }
+import {
+  createFallbackFromSchema,
+  normalizeNutritionResult,
+  normalizeSchemaResult,
+} from '../domain/nutritionRules.js';
 
+export class NutritionService {
   canFallback(payload) {
     return Boolean(payload?.response_json_schema || payload?.prompt);
   }
 
   normalize(rawResult, payload = {}) {
-    const schemaNormalized = this.normalizeSchemaResult(rawResult, payload.response_json_schema, payload.prompt);
-    return this.normalizeNutritionResult(this.coerceNutritionShape(schemaNormalized), payload.prompt);
+    const schemaNormalized = normalizeSchemaResult(rawResult, payload.response_json_schema, payload.prompt);
+    return normalizeNutritionResult(this.coerceNutritionShape(schemaNormalized), payload.prompt);
   }
 
   coerceNutritionShape(result) {
@@ -61,13 +61,13 @@ export class NutritionService {
 
   fallback(payload = {}) {
     return this.normalize(
-      this.createFallbackFromSchema(payload.response_json_schema, payload.prompt),
+      createFallbackFromSchema(payload.response_json_schema, payload.prompt),
       payload
     );
   }
 
   async invoke(payload, aiService) {
     const aiResult = await aiService.invoke(payload);
-    return this.normalize(aiResult || this.createFallbackFromSchema(payload.response_json_schema, payload.prompt), payload);
+    return this.normalize(aiResult || createFallbackFromSchema(payload.response_json_schema, payload.prompt), payload);
   }
 }
