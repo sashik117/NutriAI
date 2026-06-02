@@ -1,54 +1,33 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, ImagePlus, Loader2, ScanLine, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useCameraStream } from '@/hooks/useCameraStream';
 import { analyzePlatePhoto, createApproximatePlateResult } from '@/services/plateVisionService';
 import { useLanguage } from '@/lib/LanguageContext';
 
-function dataUrlToFile(dataUrl, filename) {
-  const [meta, content] = dataUrl.split(',');
-  const mime = meta.match(/data:(.*?);base64/)?.[1] || 'image/jpeg';
-  const binary = atob(content);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return new File([bytes], filename, { type: mime });
-}
+const PLATE_CAMERA_CONSTRAINTS = {
+  video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+};
 
 export default function LiveCameraAnalyzer({ onResult }) {
   const { text } = useLanguage();
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
-  const streamRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
   const [preview, setPreview] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
 
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setCameraActive(false);
-  }, []);
+  const { videoRef, cameraActive, startCamera: startCameraStream, stopCamera, captureFrameDataUrl, captureFrameFile } = useCameraStream({
+    constraints: PLATE_CAMERA_CONSTRAINTS,
+    onError: () => setError(text('\u041d\u0435\u043c\u0430\u0454 \u0434\u043e\u0441\u0442\u0443\u043f\u0443 \u0434\u043e \u043a\u0430\u043c\u0435\u0440\u0438. \u041c\u043e\u0436\u043d\u0430 \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0438\u0442\u0438 \u0444\u043e\u0442\u043e \u0437 \u0433\u0430\u043b\u0435\u0440\u0435\u0457.', 'No camera access. You can upload a photo from the gallery.')),
+  });
 
   const startCamera = async () => {
     setError('');
     setPreview('');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-      });
-      streamRef.current = stream;
-      setCameraActive(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-    } catch {
-      setError('Немає доступу до камери. Можна завантажити фото з галереї.');
-    }
+    await startCameraStream();
   };
 
   const close = () => {
@@ -92,19 +71,13 @@ export default function LiveCameraAnalyzer({ onResult }) {
   };
 
   const capturePhoto = async () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || !video.videoWidth) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.96);
+    const dataUrl = captureFrameDataUrl(0.96);
+    const file = captureFrameFile('plate-high-quality.jpg', 0.96);
+    if (!dataUrl || !file) return;
     setPreview(dataUrl);
     stopCamera();
-    await analyzeFile(dataUrlToFile(dataUrl, 'plate-high-quality.jpg'));
+    await analyzeFile(file);
   };
-
-  useEffect(() => () => stopCamera(), [stopCamera]);
 
   return (
     <>
@@ -201,8 +174,6 @@ export default function LiveCameraAnalyzer({ onResult }) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <canvas ref={canvasRef} className="hidden" />
     </>
   );
 }

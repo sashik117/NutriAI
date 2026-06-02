@@ -3,36 +3,31 @@ import { Button } from '@/components/ui/button';
 import { Camera, ImagePlus, Loader2, ScanBarcode, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useCameraStream } from '@/hooks/useCameraStream';
 import { analyzeProductLabel, extractBarcode, fetchProductByBarcode } from '@/services/barcodeScannerService';
 import { useLanguage } from '@/lib/LanguageContext';
 
-function dataUrlToFile(dataUrl, filename) {
-  const [meta, content] = dataUrl.split(',');
-  const mime = meta.match(/data:(.*?);base64/)?.[1] || 'image/jpeg';
-  const binary = atob(content);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return new File([bytes], filename, { type: mime });
-}
+const BARCODE_CAMERA_CONSTRAINTS = {
+  video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+};
 
 export default function BarcodeScanner({ onResult }) {
   const { text } = useLanguage();
   const fileInputRef = useRef(null);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
   const scanTimerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
   const [preview, setPreview] = useState('');
   const [detectedCode, setDetectedCode] = useState('');
   const [needsLabelPhoto, setNeedsLabelPhoto] = useState(false);
+  const { videoRef, cameraActive, startCamera: startCameraStream, stopCamera: stopCameraStream, captureFrameFile } = useCameraStream({
+    constraints: BARCODE_CAMERA_CONSTRAINTS,
+    onError: () => toast.error('No camera access'),
+  });
 
   const stopCamera = () => {
     clearInterval(scanTimerRef.current);
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setCameraActive(false);
+    stopCameraStream();
   };
 
   const closeModal = () => {
@@ -49,14 +44,7 @@ export default function BarcodeScanner({ onResult }) {
     closeModal();
   };
 
-  const captureCurrentFrame = () => {
-    if (!videoRef.current || !videoRef.current.videoWidth) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    return dataUrlToFile(canvas.toDataURL('image/jpeg', 0.92), 'barcode-label.jpg');
-  };
+  const captureCurrentFrame = () => captureFrameFile('barcode-label.jpg', 0.92);
 
   const analyzeLabelWithGemini = async (file, barcodeHint = '') => {
     setScanning(true);
@@ -126,16 +114,8 @@ export default function BarcodeScanner({ onResult }) {
     try {
       setDetectedCode('');
       setNeedsLabelPhoto(false);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-      streamRef.current = stream;
-      setCameraActive(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      const stream = await startCameraStream();
+      if (!stream) return;
 
       const detector = new window.BarcodeDetector({
         formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'],
@@ -160,7 +140,10 @@ export default function BarcodeScanner({ onResult }) {
     }
   };
 
-  useEffect(() => () => stopCamera(), []);
+  useEffect(() => () => {
+    clearInterval(scanTimerRef.current);
+    stopCameraStream();
+  }, [stopCameraStream]);
 
   return (
     <>

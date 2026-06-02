@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -15,86 +13,28 @@ import SmartRemaining from '../components/dashboard/SmartRemaining';
 import EditMealDialog from '../components/food/EditMealDialog';
 import ThemeToggle from '../components/layout/ThemeToggle';
 import HealthConnect from '../components/health/HealthConnect';
+import { useDashboardPage } from '@/hooks/useDashboardPage';
 import { useLanguage } from '@/lib/LanguageContext';
-import { userProfileRepository, foodLogRepository, waterLogRepository } from '@/services/repositories';
 
 export default function Dashboard() {
   const { isEnglish, text } = useLanguage();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activityCalories, setActivityCalories] = useState(0);
-  const [editingLog, setEditingLog] = useState(null);
-  const dateStr = format(selectedDate, 'yyyy-MM-dd');
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const isToday = dateStr === today;
-  const queryClient = useQueryClient();
-
-  const { data: profiles } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: () => userProfileRepository.list(),
-    initialData: [],
-  });
-
-  const profile = profiles[0];
-
-  const { data: foodLogs } = useQuery({
-    queryKey: ['foodLogs', dateStr],
-    queryFn: () => foodLogRepository.filter({ date: dateStr }),
-    initialData: [],
-  });
-
-  const { data: allFoodLogs } = useQuery({
-    queryKey: ['allFoodLogsForDots'],
-    queryFn: () => foodLogRepository.list('-date', 300),
-    initialData: [],
-  });
-
-  const { data: waterLogs } = useQuery({
-    queryKey: ['waterLogs', dateStr],
-    queryFn: () => waterLogRepository.filter({ date: dateStr }),
-    initialData: [],
-  });
-
-  const addWaterMutation = useMutation({
-    mutationFn: (amount) => waterLogRepository.create({ amount_ml: amount, date: today }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['waterLogs', today] }),
-  });
-
-  const goals = {
-    calories: (profile?.daily_calories || 2000) + (isToday ? activityCalories : 0),
-    proteins: profile?.daily_proteins || 150,
-    fats: profile?.daily_fats || 67,
-    carbs: profile?.daily_carbs || 200,
-    water: profile?.daily_water_ml || 2000,
-  };
-
-  const totals = foodLogs.reduce(
-    (acc, log) => ({
-      calories: acc.calories + (log.total_calories || 0),
-      proteins: acc.proteins + (log.total_proteins || 0),
-      fats: acc.fats + (log.total_fats || 0),
-      carbs: acc.carbs + (log.total_carbs || 0),
-    }),
-    { calories: 0, proteins: 0, fats: 0, carbs: 0 }
-  );
-
-  const totalWater = waterLogs.reduce((acc, log) => acc + (log.amount_ml || 0), 0);
-  const logDates = allFoodLogs.map((log) => String(log.date).slice(0, 10));
-  const calendarStats = allFoodLogs.reduce((acc, log) => {
-    const date = String(log.date).slice(0, 10);
-    acc[date] = acc[date] || { calories: 0, proteins: 0, fats: 0, carbs: 0, ratio: 0 };
-    acc[date].calories += log.total_calories || 0;
-    acc[date].proteins += log.total_proteins || 0;
-    acc[date].fats += log.total_fats || 0;
-    acc[date].carbs += log.total_carbs || 0;
-    const ratios = [
-      acc[date].calories / (goals.calories || 1),
-      acc[date].proteins / (goals.proteins || 1),
-      acc[date].fats / (goals.fats || 1),
-      acc[date].carbs / (goals.carbs || 1),
-    ];
-    acc[date].ratio = ratios.reduce((sum, value) => sum + Math.min(value, 1.3), 0) / ratios.length;
-    return acc;
-  }, {});
+  const {
+    selectedDate,
+    setSelectedDate,
+    setActivityCalories,
+    editingLog,
+    setEditingLog,
+    isToday,
+    profile,
+    foodLogs,
+    goals,
+    totals,
+    totalWater,
+    logDates,
+    calendarStats,
+    addWaterMutation,
+    refreshSelectedFoodLogs,
+  } = useDashboardPage();
   return (
     <div className="space-y-4 pt-5">
       <motion.header initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-3">
@@ -207,7 +147,7 @@ export default function Dashboard() {
           log={editingLog}
           open={!!editingLog}
           onClose={() => setEditingLog(null)}
-          onSaved={() => queryClient.invalidateQueries({ queryKey: ['foodLogs', dateStr] })}
+          onSaved={refreshSelectedFoodLogs}
         />
       )}
     </div>

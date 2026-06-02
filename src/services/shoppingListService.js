@@ -101,7 +101,7 @@ function normalizeIngredient(ingredient, meal) {
   if (!name) return null;
   const itemKey = canonicalName(name);
   const mealKey = canonicalName(meal?.title);
-  if (!itemKey || itemKey === mealKey || mealKey.includes(itemKey)) return null;
+  if (!itemKey || itemKey === mealKey) return null;
   const { amount, unit } = parseAmountUnit(ingredient);
   if (!amount || amount <= 0) return null;
   return {
@@ -183,6 +183,6 @@ export function saveShoppingList({ storageId, day, sourceMeals, list }) {
 
 export function shoppingListToClipboardText(list) {
   return list.categories
-    .map((category) => `${category.name}:\n${category.items.map((item) => `- ${item.name} ? ${item.displayAmount}`).join('\n')}`)
+    .map((category) => `${category.name}:\n${category.items.map((item) => `- ${item.name} - ${item.displayAmount}`).join('\n')}`)
     .join('\n\n');
 }
