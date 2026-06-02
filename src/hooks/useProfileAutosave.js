@@ -25,22 +25,27 @@ function buildProfilePayload(form, calculated) {
 
 export function useProfileAutosave({ form, calculated, existing, isLoading, queryClient }) {
   const autosaveTimerRef = useRef(null);
+  const lastSavedPayloadRef = useRef('');
   const [saveState, setSaveState] = useState('idle');
 
   useEffect(() => {
     if (isLoading) return undefined;
     if (!form.age || !form.weight || !form.target_weight || !form.height) return undefined;
 
+    const data = buildProfilePayload(form, calculated);
+    const payloadKey = JSON.stringify(data);
+    if (payloadKey === lastSavedPayloadRef.current) return undefined;
+
     clearTimeout(autosaveTimerRef.current);
     setSaveState('saving');
     autosaveTimerRef.current = setTimeout(async () => {
       try {
-        const data = buildProfilePayload(form, calculated);
         if (existing) {
           await userProfileRepository.update(existing.id, data);
         } else {
           await userProfileRepository.create(data);
         }
+        lastSavedPayloadRef.current = payloadKey;
         queryClient.invalidateQueries({ queryKey: ['userProfile'] });
         setSaveState('saved');
       } catch (error) {
@@ -50,7 +55,7 @@ export function useProfileAutosave({ form, calculated, existing, isLoading, quer
     }, 700);
 
     return () => clearTimeout(autosaveTimerRef.current);
-  }, [form, calculated.goal, calculated.calories, calculated.proteins, calculated.fats, calculated.carbs, calculated.water, existing, isLoading, queryClient]);
+  }, [form, calculated.goal, calculated.calories, calculated.proteins, calculated.fats, calculated.carbs, calculated.water, existing?.id, isLoading, queryClient]);
 
   return saveState;
 }

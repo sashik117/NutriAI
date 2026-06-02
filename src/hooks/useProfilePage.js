@@ -86,7 +86,6 @@ export function useProfilePage() {
   const profileMeta = [
     user?.nickname || user?.name,
     user?.email,
-    saveState === 'saving' ? languageApi.text('автозбереження', 'autosaving') : '',
     saveState === 'saved' ? languageApi.text('збережено', 'saved') : '',
     saveState === 'error' ? languageApi.text('помилка автозбереження', 'autosave error') : '',
   ].filter(Boolean).join(' В· ');
