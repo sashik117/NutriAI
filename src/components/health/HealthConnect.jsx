@@ -1,100 +1,22 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Footprints, Flame, RefreshCw, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useHealthConnect } from '@/hooks/useHealthConnect';
 import { useLanguage } from '@/lib/LanguageContext';
-
-// Health Connect / HealthKit bridge
-// In a PWA: we use Web Bluetooth / Web NFC workarounds or manual entry.
-// In Capacitor build: replace this with @capacitor-community/health or capacitor-health-connect plugin.
-
-const STORAGE_KEY = 'health_activity_today';
-
-function getStoredActivity() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    if (stored.date === new Date().toISOString().split('T')[0]) return stored;
-  } catch {}
-  return null;
-}
-
-function storeActivity(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    ...data,
-    date: new Date().toISOString().split('T')[0],
-  }));
-}
-
-// Estimate calories burned from steps (MET formula)
-function stepsToCalories(steps, weightKg = 70) {
-  // ~0.04 kcal per step per 70kg
-  return Math.round(steps * 0.04 * (weightKg / 70));
-}
 
 export default function HealthConnect({ onActivityUpdate, weightKg = 70 }) {
   const { text } = useLanguage();
-  const [connected, setConnected] = useState(false);
-  const [activity, setActivity] = useState(null);
-  const [manualSteps, setManualSteps] = useState('');
-  const [showManual, setShowManual] = useState(false);
-
-  useEffect(() => {
-    const stored = getStoredActivity();
-    if (stored) {
-      setActivity(stored);
-      setConnected(true);
-      onActivityUpdate?.(stored.active_calories || 0);
-    }
-  }, []);
-
-  // Try Web Health API (Chrome on Android with Health Connect installed)
-  const tryNativeConnect = async () => {
-    // @ts-ignore
-    if (navigator.health) {
-      try {
-        // @ts-ignore
-        await navigator.health.requestPermission(['steps', 'activeCalories']);
-        // @ts-ignore
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        // @ts-ignore
-        const steps = await navigator.health.query({ type: 'steps', startDate: today, endDate: new Date() });
-        const stepCount = steps?.total || 0;
-        const active_calories = stepsToCalories(stepCount, weightKg);
-        const data = { steps: stepCount, active_calories, source: 'HealthConnect' };
-        setActivity(data);
-        storeActivity(data);
-        setConnected(true);
-        onActivityUpdate?.(active_calories);
-        return true;
-      } catch {}
-    }
-    return false;
-  };
-
-  const handleConnect = async () => {
-    const ok = await tryNativeConnect();
-    if (!ok) setShowManual(true);
-  };
-
-  const handleManualSubmit = () => {
-    const steps = parseInt(manualSteps) || 0;
-    const active_calories = stepsToCalories(steps, weightKg);
-    const data = { steps, active_calories, source: 'manual' };
-    setActivity(data);
-    storeActivity(data);
-    setConnected(true);
-    setShowManual(false);
-    setManualSteps('');
-    onActivityUpdate?.(active_calories);
-  };
-
-  const reset = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setActivity(null);
-    setConnected(false);
-    onActivityUpdate?.(0);
-  };
+  const {
+    connected,
+    activity,
+    manualSteps,
+    setManualSteps,
+    showManual,
+    handleConnect,
+    handleManualSubmit,
+    reset,
+    estimatedManualCalories,
+  } = useHealthConnect({ onActivityUpdate, weightKg });
 
   if (connected && activity) {
     return (
@@ -162,7 +84,7 @@ export default function HealthConnect({ onActivityUpdate, weightKg = 70 }) {
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            ~{stepsToCalories(parseInt(manualSteps) || 0, weightKg)} {text('ккал буде додано до денної норми', 'kcal will be added to today goal')}
+            ~{estimatedManualCalories} {text('ккал буде додано до денної норми', 'kcal will be added to today goal')}
           </p>
         </motion.div>
       )}

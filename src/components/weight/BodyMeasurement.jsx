@@ -1,46 +1,13 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { uk } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Plus, Ruler } from 'lucide-react';
-import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { bodyMeasurementRepository } from '@/services/repositories';
+import { useBodyMeasurements } from '@/hooks/useBodyMeasurements';
 
 
 export default function BodyMeasurements() {
-  const [form, setForm] = useState({ waist: '', hips: '', chest: '' });
-  const [showForm, setShowForm] = useState(false);
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const queryClient = useQueryClient();
-
-  const { data: measurements } = useQuery({
-    queryKey: ['bodyMeasurements'],
-    queryFn: () => bodyMeasurementRepository.list('-date', 30),
-    initialData: [],
-  });
-
-  const addMutation = useMutation({
-    mutationFn: (data) => bodyMeasurementRepository.create({ ...data, date: today }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bodyMeasurements'] });
-      toast.success('Заміри збережено ✅');
-      setForm({ waist: '', hips: '', chest: '' });
-      setShowForm(false);
-    },
-  });
-
-  const chartData = [...measurements]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map(m => ({
-      date: format(new Date(m.date), 'd MMM', { locale: uk }),
-      waist: m.waist,
-      hips: m.hips,
-      chest: m.chest,
-    }));
+  const { form, showForm, setShowForm, updateForm, saveMeasurements, canSave, chartData } = useBodyMeasurements();
 
   return (
     <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
@@ -62,7 +29,7 @@ export default function BodyMeasurements() {
               <Input
                 type="number"
                 value={form[k]}
-                onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+                onChange={(event) => updateForm(k, event.target.value)}
                 className="rounded-lg h-8 text-sm mt-0.5"
                 placeholder="0"
               />
@@ -72,8 +39,8 @@ export default function BodyMeasurements() {
             <Button
               size="sm"
               className="w-full rounded-xl"
-              onClick={() => addMutation.mutate({ waist: Number(form.waist), hips: Number(form.hips), chest: Number(form.chest) })}
-              disabled={!form.waist && !form.hips && !form.chest}
+              onClick={saveMeasurements}
+              disabled={!canSave}
             >
               Зберегти заміри
             </Button>

@@ -1,25 +1,11 @@
-import { useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { useRecipeGenerator } from '@/hooks/useRecipeGenerator';
 import { useLanguage } from '@/lib/LanguageContext';
-import { generateRecipeSuggestion } from '@/services/recipeSuggestionService';
 
 export default function RecipeGenerator({ remainingCalories = 0 }) {
   const { isEnglish, text } = useLanguage();
-  const [recipe, setRecipe] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const generate = async () => {
-    setLoading(true);
-    try {
-      setRecipe(await generateRecipeSuggestion({ remainingCalories, isEnglish }));
-    } catch (error) {
-      toast.error(error.message || text('Не вдалося згенерувати ідею', 'Could not generate an idea'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { recipe, loading, generate } = useRecipeGenerator({ remainingCalories, isEnglish, text });
 
   return (
     <section className="rounded-2xl border border-primary/20 bg-primary/5 p-3.5">

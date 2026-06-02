@@ -1,67 +1,24 @@
-import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Save, Plus } from 'lucide-react';
-import { toast } from 'sonner';
-import { foodLogRepository } from '@/services/repositories';
-
-const emptyItem = { name: '', unit: 'g', amount: 100, weight_g: 100, calories: 0, proteins: 0, fats: 0, carbs: 0 };
-const normalizeItem = (item) => {
-  const unit = item?.unit === 'ml' ? 'ml' : 'g';
-  const amount = Math.max(Number(item?.amount ?? item?.weight_g ?? 100) || 100, 1);
-  return { ...emptyItem, ...item, unit, amount, weight_g: unit === 'g' ? amount : Number(item?.weight_g ?? amount) };
-};
+import { useEditMealDialog } from '@/hooks/useEditMealDialog';
 
 export default function EditMealDialog({ log, open, onClose, onSaved }) {
-  const [mealType, setMealType] = useState(log?.meal_type || 'lunch');
-  const [items, setItems] = useState((log?.items || []).map(normalizeItem));
-  const [saving, setSaving] = useState(false);
-
-  const updateItem = (index, key, value) => {
-    setItems((current) => current.map((item, itemIndex) => {
-      if (itemIndex !== index) return item;
-      const next = { ...item, [key]: key === 'name' || key === 'unit' ? value : Number(value) };
-      if (key === 'amount' && next.unit === 'g') next.weight_g = Number(value);
-      if (key === 'unit' && value === 'g') next.weight_g = Number(next.amount || 100);
-      return next;
-    }));
-  };
-
-  const removeItem = (index) => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index));
-  const addItem = () => setItems((current) => [...current, emptyItem]);
-
-  const totals = items.reduce((acc, item) => ({
-    calories: acc.calories + (Number(item.calories) || 0),
-    proteins: acc.proteins + (Number(item.proteins) || 0),
-    fats: acc.fats + (Number(item.fats) || 0),
-    carbs: acc.carbs + (Number(item.carbs) || 0),
-  }), { calories: 0, proteins: 0, fats: 0, carbs: 0 });
-
-  const handleSave = async () => {
-    setSaving(true);
-    await foodLogRepository.update(log.id, {
-      meal_type: mealType,
-      items: items.map(normalizeItem),
-      total_calories: Math.round(totals.calories),
-      total_proteins: Math.round(totals.proteins),
-      total_fats: Math.round(totals.fats),
-      total_carbs: Math.round(totals.carbs),
-    });
-    toast.success('Збережено');
-    setSaving(false);
-    onSaved();
-    onClose();
-  };
-
-  const handleDelete = async () => {
-    await foodLogRepository.delete(log.id);
-    toast.success('Видалено');
-    onSaved();
-    onClose();
-  };
+  const {
+    mealType,
+    setMealType,
+    items,
+    updateItem,
+    removeItem,
+    addItem,
+    totals,
+    saving,
+    handleSave,
+    handleDelete,
+  } = useEditMealDialog({ log, onClose, onSaved });
 
   if (!log) return null;
 

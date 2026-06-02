@@ -1,100 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
 import { Bell, BellOff, Droplets } from 'lucide-react';
-import { format } from 'date-fns';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useWaterReminder } from '@/hooks/useWaterReminder';
 import { useLanguage } from '@/lib/LanguageContext';
-import { waterLogRepository } from '@/services/repositories';
 
 const REMINDER_INTERVALS = [30, 60, 90, 120]; // minutes
 
 export default function WaterReminder({ currentMl, goalMl }) {
   const { text } = useLanguage();
-  const [enabled, setEnabled] = useState(() => localStorage.getItem('water_reminder') === 'true');
-  const [intervalMin, setIntervalMin] = useState(() => parseInt(localStorage.getItem('water_reminder_interval') || '60'));
-  const [permission, setPermission] = useState(() =>
-    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
-  );
-  const [showInApp, setShowInApp] = useState(false);
-  const timerRef = useRef(null);
-  const queryClient = useQueryClient();
-  const today = format(new Date(), 'yyyy-MM-dd');
-
-  const logWater = async (ml) => {
-    try {
-      await waterLogRepository.create({ amount_ml: ml, date: today });
-      queryClient.invalidateQueries({ queryKey: ['waterLogs'] });
-      toast.success(text(`💧 +${ml} мл додано!`, `💧 +${ml} ml added!`));
-      setShowInApp(false);
-    } catch (error) {
-      toast.error(error.message || text('Не вдалося додати воду', 'Could not add water'));
-    }
-  };
-
-  const requestPermission = async () => {
-    if (!('Notification' in window)) {
-      toast.error(text('Ваш браузер не підтримує сповіщення', 'Your browser does not support notifications'));
-      return false;
-    }
-    const result = await Notification.requestPermission();
-    setPermission(result);
-    return result === 'granted';
-  };
-
-  const sendNotification = () => {
-    const remaining = Math.max(goalMl - currentMl, 0);
-    if (remaining <= 0) return;
-
-    if (permission === 'granted') {
-      const n = new Notification(text('💧 Час попити воду!', '💧 Time to drink water!'), {
-        body: text(`Залишилось: ${remaining} мл. Не забувай про гідратацію!`, `${remaining} ml left. Stay hydrated!`),
-        icon: '/nutriai-icon.svg',
-        tag: 'water-reminder',
-        renotify: true,
-        // Actions work only in Service Worker notifications
-        requireInteraction: false,
-      });
-      n.onclick = () => { window.focus(); setShowInApp(true); };
-    } else {
-      // Fallback: in-app banner
-      setShowInApp(true);
-    }
-  };
-
-  const startTimer = (min) => {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(sendNotification, min * 60 * 1000);
-  };
-
-  const toggleReminder = async () => {
-    if (!enabled) {
-      if (permission !== 'granted') {
-        const ok = await requestPermission();
-        if (!ok) setShowInApp(true);
-      }
-      setEnabled(true);
-      localStorage.setItem('water_reminder', 'true');
-      startTimer(intervalMin);
-      toast.success(text(`🔔 Нагадування кожні ${intervalMin} хв увімкнено`, `🔔 Reminder every ${intervalMin} min enabled`));
-    } else {
-      clearInterval(timerRef.current);
-      setEnabled(false);
-      localStorage.setItem('water_reminder', 'false');
-      toast(text('🔕 Нагадування вимкнено', '🔕 Reminder disabled'));
-    }
-  };
-
-  const changeInterval = (min) => {
-    setIntervalMin(min);
-    localStorage.setItem('water_reminder_interval', String(min));
-    if (enabled) startTimer(min);
-  };
-
-  useEffect(() => {
-    if (enabled) startTimer(intervalMin);
-    return () => clearInterval(timerRef.current);
-  }, []);
+  const {
+    enabled,
+    intervalMin,
+    showInApp,
+    setShowInApp,
+    logWater,
+    toggleReminder,
+    changeInterval,
+    sendNotification,
+  } = useWaterReminder({ currentMl, goalMl, text });
 
   return (
     <div className="space-y-2">

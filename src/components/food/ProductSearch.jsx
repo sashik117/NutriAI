@@ -1,10 +1,9 @@
-import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2, Plus, Pencil, Check, Beef, Wheat, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ManualAddForm from './ManualAddForm';
-import { cleanProduct, searchProducts } from '@/services/productSearchService';
+import { useProductSearch } from '@/hooks/useProductSearch';
 
 function EditField({ label, icon, value, onChange }) {
   return (
@@ -22,53 +21,22 @@ function EditField({ label, icon, value, onChange }) {
 }
 
 export default function ProductSearch({ onAdd }) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [showManual, setShowManual] = useState(false);
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [draftProduct, setDraftProduct] = useState(null);
-
-  const search = async () => {
-    if (!query.trim()) return;
-    setLoading(true);
-    setSearched(true);
-    setShowManual(false);
-    setEditingIndex(null);
-
-    try {
-      setResults(await searchProducts(query));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addItem = (item) => {
-    onAdd(cleanProduct(item, query));
-    setResults([]);
-    setQuery('');
-    setSearched(false);
-    setShowManual(false);
-    setEditingIndex(null);
-    setDraftProduct(null);
-  };
-
-  const startEdit = (product, index) => {
-    setEditingIndex(index);
-    setDraftProduct({ ...product });
-  };
-
-  const updateDraft = (field, value) => {
-    setDraftProduct((current) => ({ ...current, [field]: value }));
-  };
-
-  const saveDraft = () => {
-    const nextProduct = cleanProduct(draftProduct, query);
-    setResults((current) => current.map((item, index) => (index === editingIndex ? nextProduct : item)));
-    setEditingIndex(null);
-    setDraftProduct(null);
-  };
+  const {
+    query,
+    setQuery,
+    results,
+    loading,
+    searched,
+    showManual,
+    setShowManual,
+    editingIndex,
+    draftProduct,
+    search,
+    addItem,
+    startEdit,
+    updateDraft,
+    saveDraft,
+  } = useProductSearch({ onAdd });
 
   return (
     <div className="space-y-3 rounded-3xl border border-border bg-card p-3 shadow-sm">

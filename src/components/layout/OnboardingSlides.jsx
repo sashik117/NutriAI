@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, ListChecks, Sparkles } from 'lucide-react';
+import { useOnboardingSlides } from '@/hooks/useOnboardingSlides';
 import { useLanguage } from '@/lib/LanguageContext';
 
 const slides = [
@@ -23,8 +23,7 @@ const slides = [
 
 export default function OnboardingSlides() {
   const { isEnglish, text } = useLanguage();
-  const [visible, setVisible] = useState(() => localStorage.getItem('nutriai_onboarding_done') !== 'true');
-  const [index, setIndex] = useState(0);
+  const { visible, index, close, next } = useOnboardingSlides(slides.length);
 
   if (!visible) return null;
 
@@ -36,10 +35,6 @@ export default function OnboardingSlides() {
   ];
   const visibleSlide = isEnglish ? englishSlides[index] : slide;
   const Icon = slide.icon;
-  const close = () => {
-    localStorage.setItem('nutriai_onboarding_done', 'true');
-    setVisible(false);
-  };
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-background/90 p-5 backdrop-blur-md">
@@ -58,10 +53,7 @@ export default function OnboardingSlides() {
           <Button variant="outline" className="flex-1 rounded-xl" onClick={close}>{text('Пропустити', 'Skip')}</Button>
           <Button
             className="flex-1 rounded-xl"
-            onClick={() => {
-              if (index === slides.length - 1) close();
-              else setIndex((current) => current + 1);
-            }}
+            onClick={next}
           >
             {index === slides.length - 1 ? text('Почати', 'Start') : text('Далі', 'Next')}
           </Button>
