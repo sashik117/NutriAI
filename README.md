@@ -48,6 +48,7 @@ The main goal is to make nutrition tracking feel faster, softer, and more person
 - Recharts
 - Lucide React
 - Sonner
+- Playwright
 
 **Backend**
 
@@ -212,6 +213,9 @@ npm run android:open # open Android project
 npm run ios:open     # open iOS project
 npm run lint         # run ESLint
 npm run typecheck    # run TypeScript/JS project checks
+npm run test:domain  # run deterministic domain smoke tests
+npm run test:e2e     # run Playwright browser E2E tests
+npm run test:full    # run full verification before a serious push
 ```
 
 ## 🔐 Environment Notes

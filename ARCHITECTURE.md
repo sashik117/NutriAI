@@ -140,6 +140,7 @@ npm run lint
 npm run typecheck
 npm run build
 npm run test:smoke
+npm run test:e2e
 ```
 
-`test:domain` checks deterministic nutrition/auth/progress/shopping-list models. `test:smoke` checks that the local frontend routes and backend health endpoint respond before deployment.
+`test:domain` checks deterministic nutrition/auth/progress/shopping-list models. `test:smoke` checks that the local frontend routes and backend health endpoint respond before deployment. `test:e2e` uses Playwright to verify mobile routes and the core flow: describe food, receive an editable AI result, save it, and see it in the diary.
