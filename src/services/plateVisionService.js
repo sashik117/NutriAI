@@ -99,23 +99,6 @@ export function createApproximatePlateResult(reason = '') {
   });
 }
 
-function getVisionPrompt(force = false) {
-  return `You are NutriAI, an expert dietitian analyzing a plate photo.
-Critical: if there is any food in the image, return a result. Do not refuse, do not return empty JSON.
-If uncertain, give the most likely concrete dish name and set ai_tip to "Приблизно, можна відредагувати".
-The most important field is the dish name. Fill dish_name and name. Never use generic names like "Food", "Meal", "Їжа", "Страва".
-
-For pasta with red or brown meat sauce, use a concrete name such as "Макарони Болоньєзе" or "Паста з м'ясним соусом".
-Rules:
-1. Split complex meals into visible components with approximate weights.
-2. Calculate realistic calories, proteins, fats, carbs for every component and totals.
-3. Use unit "ml" for liquids and "g" for solid food.
-4. If the photo is not perfect, make the best concrete hypothesis from texture, color, and shape.
-5. Meat without breading has almost no carbs; herbs 2-5 g have almost no calories; count pasta as cooked.
-${force ? 'Force mode: return an approximate editable object even with low confidence.' : ''}
-Return strict JSON only. No markdown or explanatory text.`;
-}
-
 export const plateVisionSchema = {
   type: 'object',
   properties: {
@@ -152,7 +135,8 @@ export async function analyzePlatePhoto(file) {
   const { file_url } = await nutriApi.integrations.Core.UploadFile({ file });
   const runVision = (force = false) =>
     nutriApi.integrations.Core.InvokeLLM({
-      prompt: getVisionPrompt(force),
+      task: 'plate_photo',
+      data: { force },
       file_urls: [file_url],
       model: 'gemini_3_flash',
       response_json_schema: plateVisionSchema,

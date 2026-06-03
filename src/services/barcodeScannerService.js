@@ -97,20 +97,11 @@ const productLabelSchema = {
   },
 };
 
-function buildLabelPrompt(barcodeHint = '') {
-  return `You are NutriAI and you read a packaged food label.
-Barcode if already detected: ${barcodeHint || 'none'}.
-
-From the photo determine product name, brand, package weight, and nutrition table per 100 g.
-For drinks return unit "ml"; for solid food return unit "g".
-Calculate total calories, proteins, fats, and carbs for the whole package or visible serving.
-Return only JSON. No markdown, no stars, no bullets, no invented products.`;
-}
-
 export async function analyzeProductLabel(file, barcodeHint = '') {
   const { file_url } = await nutriApi.integrations.Core.UploadFile({ file });
   const result = await nutriApi.integrations.Core.InvokeLLM({
-    prompt: buildLabelPrompt(barcodeHint),
+    task: 'product_label',
+    data: { barcodeHint },
     file_urls: [file_url],
     model: 'gemini_3_flash',
     response_json_schema: productLabelSchema,

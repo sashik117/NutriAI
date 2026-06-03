@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
+import { getSystemInstruction } from './aiTaskService.js';
 
 function extractGeminiText(data) {
   return data.candidates?.[0]?.content?.parts
@@ -58,27 +59,20 @@ export class AIService {
 
     const schema = payload.response_json_schema;
     const wantsJson = Boolean(schema);
-    const isNutritionSchema = wantsJson && schema?.properties?.total_calories && schema?.properties?.items;
-    const nutritionInstructions = isNutritionSchema
-      ? `\n\nNutrition rules:
-- Estimate visible/mentioned food weight in grams before calculating calories and macros.
-- Use realistic nutrition values per 100g, as a dietitian would from food tables.
-- Never output impossible values: calories cannot exceed 9 kcal per gram, and macros cannot weigh more than the item.
-- Meat, fish and plain minced meat usually have 0g carbs unless breaded, battered, or mixed with sauce.
-- Cooked pasta is usually about 150-170 kcal per 100g with mostly carbs.
-- Cream/cheese sauce is usually fat-heavy and only a few carbs.
-- Herbs/garnish under 10g are nutritionally tiny, usually 0-5 kcal total.
-- If unsure, give a conservative realistic estimate, not 0 and not a placeholder.`
-      : '';
+    const systemInstruction = getSystemInstruction();
 
     const parts = [
       {
-        text: `${payload.prompt || ''}\n\nUnique response seed: ${crypto.randomUUID()}.${nutritionInstructions}${wantsJson ? '\n\nReturn only valid JSON matching the requested schema.' : ''}`,
+        text: `${payload.prompt || ''}\n\nUnique response seed: ${crypto.randomUUID()}.${wantsJson ? '\n\nReturn only valid JSON matching the requested schema.' : ''}`,
       },
       ...(await this.getUploadedParts(payload, 'gemini')),
     ];
 
     const body = {
+      systemInstruction: {
+        role: 'system',
+        parts: [{ text: systemInstruction }],
+      },
       contents: [{ role: 'user', parts }],
       generationConfig: {
         temperature: 0.2,
@@ -121,6 +115,7 @@ export class AIService {
 
     const schema = payload.response_json_schema;
     const wantsJson = Boolean(schema);
+    const systemInstruction = getSystemInstruction();
     const uploaded = (payload.file_urls || [])
       .map((fileUrl) => this.uploadedFiles.get(fileUrl))
       .filter(Boolean);
@@ -152,7 +147,7 @@ export class AIService {
     const body = {
       model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
       messages: [
-        { role: 'system', content: wantsJson ? 'Return only valid JSON matching the requested schema.' : 'Answer concisely in Ukrainian.' },
+        { role: 'system', content: `${systemInstruction}\n\n${wantsJson ? 'Return only valid JSON matching the requested schema.' : 'Answer concisely in Ukrainian.'}` },
         {
           role: 'user',
           content: imageContent.length

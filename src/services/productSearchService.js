@@ -32,15 +32,8 @@ async function fetchOpenFoodFacts(query) {
 async function fetchGeminiProducts(query) {
   try {
     const result = await nutriApi.integrations.Core.InvokeLLM({
-      prompt: `Give realistic average nutrition data for "${query}" per 100 grams.
-Return only JSON.
-Rules:
-- Each product must be for 100 g, unit "g", amount 100, weight_g 100.
-- Never reuse this placeholder template: 200 kcal, protein 8, fat 6, carbs 28.
-- Snickers is usually about 480-500 kcal per 100 g, fat about 23-25 g, carbs about 60-65 g.
-- Dry pasta is usually about 340-370 kcal per 100 g and fat about 1-2 g.
-- If exact brand data is unknown, give an honest realistic estimate.
-- Do not use markdown or explanatory text.`,
+      task: 'product_search',
+      data: { query },
       response_json_schema: {
         type: 'object',
         properties: {

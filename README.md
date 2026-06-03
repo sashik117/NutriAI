@@ -169,9 +169,12 @@ DATABASE_URL=postgres://postgres:password@localhost:5432/nutriai
 DATABASE_SCHEMA=public
 DATABASE_SSL=false
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_SYSTEM_INSTRUCTION=private_backend_only_prompt
 OPENAI_API_KEY=optional_openai_fallback_key
 PORT=4001
 ```
+
+`GEMINI_API_KEY` and `GEMINI_SYSTEM_INSTRUCTION` are backend-only secrets. Do not expose them through `VITE_` variables or commit real values to GitHub.
 
 Run database migrations:
 

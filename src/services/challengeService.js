@@ -33,22 +33,10 @@ const challengeSchema = {
   },
 };
 
-function buildChallengePrompt({ profile = {}, streak = 0, isEnglish = false }) {
-  const language = isEnglish ? 'English' : 'Ukrainian';
-  return `Generate a personal weekly nutrition challenge in ${language}.
-Goal: ${profile?.goal || 'maintain'}
-Calories: ${profile?.daily_calories || 2000}
-Protein: ${profile?.daily_proteins || 150} g
-Current streak: ${streak} days
-
-Return only clean JSON with title, description, emoji and 5 short daily tasks.
-Make the challenge specific, practical, and different every time.
-No markdown, no #, no *, no bullet characters.`;
-}
-
 export async function generatePersonalChallenge({ profile = {}, streak = 0, isEnglish = false }) {
   const result = await nutriApi.integrations.Core.InvokeLLM({
-    prompt: buildChallengePrompt({ profile, streak, isEnglish }),
+    task: 'personal_challenge',
+    data: { profile, streak, isEnglish },
     response_json_schema: challengeSchema,
     model: 'gemini_3_flash',
   });

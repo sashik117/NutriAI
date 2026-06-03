@@ -62,28 +62,13 @@ const recipeSchema = {
   },
 };
 
-function buildRecipePrompt({ targetCalories, isEnglish, seed }) {
-  if (isEnglish) {
-    return `Suggest one simple meal in English for about ${targetCalories} kcal.
-Unique variant seed: ${seed}.
-Return only clean JSON. No markdown, no headings, no #, no *, no bullet characters.
-Keep it realistic, balanced, and not extremely fatty.
-Fields: title, serving, ingredients array, calories, proteins, fats, carbs, note.`;
-  }
-
-  return `Запропонуй одну просту страву українською приблизно на ${targetCalories} ккал.
-Унікальний seed варіанту: ${seed}.
-Поверни тільки чистий JSON. Без markdown, заголовків, #, *, маркерів списку.
-Страва має бути реалістична, збалансована і не жирна на максимум.
-Поля: title, serving, ingredients масив, calories, proteins, fats, carbs, note.`;
-}
-
 export async function generateRecipeSuggestion({ remainingCalories = 0, isEnglish = false }) {
   const targetCalories = Math.max(200, Math.round(remainingCalories || 0));
   const seed = Math.random().toString(36).slice(2, 8);
   const result = await nutriApi.integrations.Core.InvokeLLM({
     model: 'gemini_3_flash',
-    prompt: buildRecipePrompt({ targetCalories, isEnglish, seed }),
+    task: 'recipe_suggestion',
+    data: { targetCalories, isEnglish, seed },
     response_json_schema: recipeSchema,
   });
 

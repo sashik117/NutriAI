@@ -11,6 +11,11 @@ function targetCaloriesFromPrompt(prompt, fallback = 520) {
   return Math.min(Math.max(value, 250), 1200);
 }
 
+function promptJsonField(prompt = '', fieldName = '') {
+  const pattern = new RegExp(`"${fieldName}"\\s*:\\s*"([^"]+)"`);
+  return String(prompt || '').match(pattern)?.[1] || '';
+}
+
 function scaleMacro(value, target, base = 500) {
   return Math.max(1, Math.round((value * target) / base));
 }
@@ -142,7 +147,7 @@ export function createFallbackFromSchema(schema, prompt = '') {
 
   if (props.products) {
     const nameMatch = prompt.match(/"([^"]+)"/);
-    const name = nameMatch?.[1] || 'Продукт';
+    const name = promptJsonField(prompt, 'query') || nameMatch?.[1] || 'Продукт';
     return {
       products: [
         { name, serving_label: '100 г', weight_g: 100, calories: 200, proteins: 8, fats: 6, carbs: 28, ingredients: 'Орієнтовні значення' },
@@ -295,7 +300,7 @@ export function normalizeNutritionResult(result, prompt = '') {
   let items = Array.isArray(result.items) ? result.items : [];
   if (items.length === 0) {
     const nameMatch = prompt.match(/"([^"]+)"/);
-    items = [{ name: nameMatch?.[1] || result.description || 'Страва', weight_g: 150 }];
+    items = [{ name: promptJsonField(prompt, 'inputText') || nameMatch?.[1] || result.description || 'Страва', weight_g: 150 }];
   }
 
   const normalizedItems = items.map((item) => {

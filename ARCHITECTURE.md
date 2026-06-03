@@ -99,7 +99,9 @@ PostgreSQL is accessed through the server DB layer and schema migrations:
 
 AI is treated as an external data source, not as business logic.
 
-- Gemini receives strict prompts and JSON schemas.
+- The frontend sends `task` + structured `data`; private AI instructions are assembled on the backend.
+- Gemini receives backend-only system instructions and JSON schemas.
+- User text is treated as untrusted data to reduce prompt-injection risk.
 - AI output is normalized before it reaches the UI.
 - Empty, generic, or zero nutrition values are repaired through nutrition rules.
 - UI never renders raw JSON or markdown from AI responses.
