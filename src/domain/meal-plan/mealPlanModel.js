@@ -1,5 +1,14 @@
 export const PLAN_STORAGE_KEY = 'nutriai_weekly_meal_plan';
 const PLAN_CACHE_PREFIX = 'nutriai_weekly_meal_plan_mode_';
+export function localPlanDate(date = new Date()) {
+  const value = date instanceof Date ? date : new Date(date);
+  const safeDate = Number.isNaN(value.getTime()) ? new Date() : value;
+  const year = safeDate.getFullYear();
+  const month = String(safeDate.getMonth() + 1).padStart(2, '0');
+  const day = String(safeDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export const GENERATION_STEPS = [
   'ШІ аналізує ваші цілі...',
   'Складаю найкращий раціон...',
@@ -391,6 +400,7 @@ export function normalizePlan(rawPlan, fallbackMode = 'classic') {
     ...planData,
     mode,
     generatedAt: planData?.generatedAt || new Date().toISOString(),
+    startDate: planData?.startDate || localPlanDate(planData?.generatedAt || new Date()),
     days: WEEK_DAYS.map((_, dayIndex) => normalizeDay(rawDays[dayIndex], dayIndex, mode)),
     selectedMeals,
   };

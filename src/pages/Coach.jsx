@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, CalendarDays, Clipboard, Copy, Loader2, NotebookPen, Shield, Trash2, UsersRound } from 'lucide-react';
+import { ArrowRight, Clipboard, Copy, Loader2, NotebookPen, Shield, Trash2, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { nutriApi } from '@/api/nutriApi';
 import { Button } from '@/components/ui/button';
@@ -24,9 +24,29 @@ function percent(value) {
   return `${Math.round(Math.min(Math.max(Number(value || 0), 0), 1.5) * 100)}%`;
 }
 
+function adherenceTextClass(status) {
+  if (status === 'good') return 'text-emerald-600';
+  if (status === 'partial') return 'text-amber-600';
+  if (status === 'over') return 'text-violet-600';
+  return 'text-muted-foreground';
+}
+
+function adherenceSurfaceClass(status) {
+  if (status === 'good') return 'border-emerald-200 bg-emerald-50 text-emerald-950';
+  if (status === 'partial') return 'border-amber-200 bg-amber-50 text-amber-950';
+  if (status === 'over') return 'border-violet-200 bg-violet-50 text-violet-950';
+  return 'border-primary/15 bg-primary/10';
+}
+
 function inviteLink(code) {
   if (!code) return '';
   return `${window.location.origin}/profile?coachInvite=${encodeURIComponent(code)}`;
+}
+
+function inviteStatusLabel(status, text) {
+  if (status === 'active') return text('Активний', 'Active');
+  if (status === 'revoked') return text('Відкликаний', 'Revoked');
+  return status || text('Невідомо', 'Unknown');
 }
 
 function Metric({ label, value, muted }) {
@@ -68,7 +88,8 @@ function ClientCard({ clientView, selected, onSelect, text }) {
         <Metric label={text('План', 'Plan')} value={planAdherence ? percent(planAdherence.ratio) : '—'} muted={!planAdherence} />
       </div>
       <div className="mt-2 space-y-1">
-        {planAdherence?.label && <p className="text-xs font-bold text-muted-foreground">{planAdherence.label}</p>}
+        {planAdherence?.plan_day && <p className="text-[11px] font-bold uppercase text-muted-foreground">{planAdherence.plan_day}</p>}
+        {planAdherence?.label && <p className={`text-xs font-bold ${adherenceTextClass(planAdherence.status)}`}>{planAdherence.label}</p>}
         {nutritionAdherence?.label && <p className="text-[11px] text-muted-foreground">{text('Калорії', 'Calories')}: {nutritionAdherence.label}</p>}
       </div>
     </button>
@@ -267,7 +288,7 @@ export default function Coach() {
                   </Button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 px-1 text-[10px] font-bold uppercase text-muted-foreground">
-                  <span>{invite.status}</span>
+                  <span>{inviteStatusLabel(invite.status, text)}</span>
                   <span>{round(invite.used_count)} / {round(invite.max_uses)}</span>
                   {invite.expires_at && <span>{String(invite.expires_at).slice(0, 10)}</span>}
                 </div>
@@ -285,8 +306,8 @@ export default function Coach() {
           </div>
           {loadingClients && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
         </div>
-        <label className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-sm font-bold">
-          <CalendarDays className="h-4 w-4 text-primary" />
+        <label className="flex items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2 text-sm font-bold">
+          <span className="text-xs font-extrabold uppercase text-primary">{text('Дата', 'Date')}</span>
           <Input
             type="date"
             value={selectedDate}
@@ -334,11 +355,14 @@ export default function Coach() {
                 <Metric label={text('Вода', 'Water')} value={`${round(clientDetail.today?.water?.amount_ml)} мл`} />
               </div>
 
-              <div className="rounded-2xl bg-primary/10 p-3">
+              <div className={`rounded-2xl border p-3 ${adherenceSurfaceClass(clientDetail.today?.plan_adherence?.status)}`}>
                 <p className="text-[10px] font-bold uppercase text-primary">{text('Дотримання плану', 'Plan adherence')}</p>
                 <p className="mt-1 text-lg font-extrabold">
                   {clientDetail.today?.plan_adherence ? percent(clientDetail.today.plan_adherence.ratio) : '—'}
                 </p>
+                {clientDetail.today?.plan_adherence?.plan_day && (
+                  <p className="text-[11px] font-bold uppercase text-muted-foreground">{clientDetail.today.plan_adherence.plan_day}</p>
+                )}
                 {clientDetail.today?.plan_adherence?.label && (
                   <p className="mt-1 text-xs text-muted-foreground">{clientDetail.today.plan_adherence.label}</p>
                 )}

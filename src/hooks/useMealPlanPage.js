@@ -9,6 +9,7 @@ import {
   PLAN_MODES,
   PLAN_STORAGE_KEY,
   getCachedModePlan,
+  localPlanDate,
   normalizeDay,
   normalizePlan,
   setCachedModePlan,
@@ -170,7 +171,7 @@ export function useMealPlanPage({ isEnglish, text }) {
 
     try {
       const result = await generateWeeklyMealPlan({ mode, profile, recentFoods });
-      const normalized = normalizePlan({ ...result, mode: mode.key, generatedAt: new Date().toISOString(), selectedMeals: [] }, mode.key);
+      const normalized = normalizePlan({ ...result, mode: mode.key, generatedAt: new Date().toISOString(), startDate: localPlanDate(), selectedMeals: [] }, mode.key);
       setPlan(normalized);
       const saved = await persistPlan(normalized, 0, planId, []);
       toast.success(saved ? text(`${mode.label} план готовий і збережений`, `${visibleModeLabel(mode)} plan is ready and saved`) : text(`${mode.label} план готовий`, `${visibleModeLabel(mode)} plan is ready`));
@@ -200,6 +201,7 @@ export function useMealPlanPage({ isEnglish, text }) {
         days: plan.days.map((day, index) => (index === selectedDayIndex ? nextDay : day)),
         selectedMeals: nextSelectedMeals,
         generatedAt: new Date().toISOString(),
+        startDate: plan.startDate || localPlanDate(),
       };
 
       setPlan(nextPlan);

@@ -200,25 +200,90 @@ function buildNutritionAdherence({ food, profile }) {
 function matchText(value) {
   return String(value || '')
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/[^\p{L}\p{N}\s?\uFFFD]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-function flattenMealPlanMeals(mealPlan) {
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function dateOnly(value) {
+  const text = String(value || '').trim();
+  const directMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (directMatch) return directMatch[0];
+
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+}
+
+function utcDay(value) {
+  const iso = dateOnly(value);
+  if (!iso) return null;
+  const [year, month, day] = iso.split('-').map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+function dayDifference(start, target) {
+  const startDay = utcDay(start);
+  const targetDay = utcDay(target);
+  if (startDay === null || targetDay === null) return null;
+  return Math.floor((targetDay - startDay) / MS_PER_DAY);
+}
+
+function mealPlanStartDate(mealPlan) {
+  const payload = mealPlan?.plan || {};
+  return (
+    dateOnly(payload.startDate) ||
+    dateOnly(payload.generatedAt) ||
+    dateOnly(payload.createdAt) ||
+    dateOnly(mealPlan?.created_date) ||
+    dateOnly(mealPlan?.updated_date)
+  );
+}
+
+function normalizeMealForCoach(meal, day, dayIndex, mealIndex) {
+  const title = meal.title || meal.name || meal.description || 'Meal';
+  return {
+    id: meal.id || `${dayIndex}-${meal.slot || 'meal'}-${matchText(title) || mealIndex}`,
+    day: day.day || day.title || `Day ${dayIndex + 1}`,
+    day_index: dayIndex,
+    slot: meal.slot || meal.meal_type || '',
+    title,
+    calories: Number(meal.calories || meal.kcal || 0),
+  };
+}
+
+function selectedMealPlanMealsForDate(mealPlan, date) {
   const payload = mealPlan?.plan || {};
   const selectedIds = new Set(Array.isArray(payload.selectedMeals) ? payload.selectedMeals : []);
-  const meals = (payload.days || []).flatMap((day, dayIndex) =>
-    (day.meals || []).map((meal) => ({
-      id: meal.id,
-      day: day.day || `Day ${dayIndex + 1}`,
-      slot: meal.slot,
-      title: meal.title || meal.name || 'Meal',
-      calories: Number(meal.calories || 0),
-    }))
-  );
+  const days = Array.isArray(payload.days) ? payload.days : [];
+  const targetDate = normalizeDate(date);
+  const startDate = mealPlanStartDate(mealPlan);
+  const selectedDayIndex = Number(mealPlan?.selected_day_index);
+  const fallbackIndex = Number.isFinite(selectedDayIndex) ? selectedDayIndex : 0;
+  const calculatedIndex = startDate ? dayDifference(startDate, targetDate) : null;
+  const dayIndex = Number.isInteger(calculatedIndex) ? calculatedIndex : fallbackIndex;
+  const day = dayIndex >= 0 && dayIndex < days.length ? days[dayIndex] : null;
 
-  return selectedIds.size ? meals.filter((meal) => selectedIds.has(meal.id)) : [];
+  if (!day) {
+    return {
+      selectedMeals: [],
+      day: null,
+      dayIndex,
+      date: targetDate,
+    };
+  }
+
+  const dayMeals = (day.meals || []).map((meal, mealIndex) => normalizeMealForCoach(meal, day, dayIndex, mealIndex));
+  const selectedMeals = selectedIds.size ? dayMeals.filter((meal) => selectedIds.has(meal.id)) : [];
+
+  return {
+    selectedMeals,
+    day,
+    dayIndex,
+    date: targetDate,
+  };
 }
 
 function foodLogHaystack(foodLogs = []) {
@@ -246,14 +311,51 @@ function mealMatchesFoodLog(meal, haystack) {
   return importantWords.filter((word) => haystack.includes(word)).length >= Math.min(2, importantWords.length);
 }
 
-function buildPlanAdherence({ mealPlan, foodLogs }) {
+function buildPlanAdherence({ mealPlan, foodLogs, date }) {
   if (!mealPlan?.plan?.days?.length) {
-    return { ratio: 0, status: 'no_plan', label: 'Плану ще немає', selected_count: 0, matched_count: 0, selected_meals: [], matched_meals: [] };
+    return {
+      ratio: 0,
+      status: 'no_plan',
+      label: 'Плану ще немає',
+      selected_count: 0,
+      matched_count: 0,
+      selected_meals: [],
+      matched_meals: [],
+      date: normalizeDate(date),
+    };
   }
 
-  const selectedMeals = flattenMealPlanMeals(mealPlan);
+  const selection = selectedMealPlanMealsForDate(mealPlan, date);
+  if (!selection.day) {
+    return {
+      ratio: 0,
+      status: 'out_of_range',
+      label: 'Цей день поза тижневим планом',
+      selected_count: 0,
+      matched_count: 0,
+      selected_meals: [],
+      matched_meals: [],
+      plan_day: null,
+      plan_day_index: selection.dayIndex,
+      date: selection.date,
+    };
+  }
+
+  const planDay = selection.day.day || selection.day.title || `Day ${selection.dayIndex + 1}`;
+  const selectedMeals = selection.selectedMeals;
   if (!selectedMeals.length) {
-    return { ratio: 0, status: 'no_selection', label: 'Страви не обрані', selected_count: 0, matched_count: 0, selected_meals: [], matched_meals: [] };
+    return {
+      ratio: 0,
+      status: 'no_selection',
+      label: 'Страви на цей день не обрані',
+      selected_count: 0,
+      matched_count: 0,
+      selected_meals: [],
+      matched_meals: [],
+      plan_day: planDay,
+      plan_day_index: selection.dayIndex,
+      date: selection.date,
+    };
   }
 
   const haystack = foodLogHaystack(foodLogs);
@@ -261,7 +363,7 @@ function buildPlanAdherence({ mealPlan, foodLogs }) {
   const ratio = matchedMeals.length / selectedMeals.length;
   let status = 'low';
   let label = 'План майже не виконано';
-  if (!haystack) {
+  if (!foodLogs.length) {
     status = 'no_logs';
     label = 'Ще немає записів їжі';
   } else if (ratio >= 0.8) {
@@ -280,6 +382,9 @@ function buildPlanAdherence({ mealPlan, foodLogs }) {
     matched_count: matchedMeals.length,
     selected_meals: selectedMeals.slice(0, 8),
     matched_meals: matchedMeals.slice(0, 8),
+    plan_day: planDay,
+    plan_day_index: selection.dayIndex,
+    date: selection.date,
   };
 }
 
@@ -294,7 +399,7 @@ async function buildClientView({ coachId, relationship, client, date, detail = f
   const weight = permissions.weight ? await latestWeight(client.id) : null;
   const nutritionAdherence = permissions.nutrition ? buildNutritionAdherence({ food, profile }) : null;
   const planAdherence = permissions.plan && permissions.nutrition
-    ? buildPlanAdherence({ mealPlan, foodLogs })
+    ? buildPlanAdherence({ mealPlan, foodLogs, date })
     : null;
 
   const view = {

@@ -5,6 +5,14 @@ const apiUrl = process.env.API_URL || 'http://localhost:4001';
 
 const pages = ['/', '/log', '/meal-plan', '/profile', '/water', '/weight', '/history', '/gamification'];
 
+function localIsoDate() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
   if (typeof options === 'number') {
     timeoutMs = options;
@@ -113,6 +121,8 @@ async function checkSessionAuth() {
       title: 'Smoke plan',
       selected_day_index: 0,
       plan: {
+        generatedAt: new Date().toISOString(),
+        startDate: localIsoDate(),
         days: [
           {
             day: 'Smoke day',
@@ -129,8 +139,23 @@ async function checkSessionAuth() {
               },
             ],
           },
+          {
+            day: 'Smoke tomorrow',
+            meals: [
+              {
+                id: 'smoke-meal-2',
+                slot: 'lunch',
+                title: 'Smoke Rice Bowl',
+                calories: 520,
+                proteins: 24,
+                fats: 16,
+                carbs: 68,
+                ingredients: [{ name: 'Rice', amount: 90, unit: 'g' }],
+              },
+            ],
+          },
         ],
-        selectedMeals: ['smoke-meal-1'],
+        selectedMeals: ['smoke-meal-1', 'smoke-meal-2'],
       },
     }),
   });
@@ -147,17 +172,19 @@ async function checkSessionAuth() {
       total_proteins: 20,
       total_fats: 12,
       total_carbs: 55,
-      date: new Date().toISOString().slice(0, 10),
+      date: localIsoDate(),
     }),
   });
   assert.ok(foodLogResponse.ok, `client food log returned ${foodLogResponse.status}`);
 
-  const clientsUrl = new URL('/api/coach/clients', apiUrl).toString();
+  const clientsUrl = new URL(`/api/coach/clients?date=${localIsoDate()}`, apiUrl).toString();
   const clientsResponse = await fetchWithTimeout(clientsUrl, { headers: { Cookie: sessionCookie } });
   assert.ok(clientsResponse.ok, `${clientsUrl} returned ${clientsResponse.status}`);
   const clients = await clientsResponse.json();
   assert.equal(clients[0]?.client?.email, client.email);
   assert.equal(clients[0]?.today?.plan_adherence?.matched_count, 1);
+  assert.equal(clients[0]?.today?.plan_adherence?.selected_count, 1);
+  assert.equal(clients[0]?.today?.plan_adherence?.plan_day_index, 0);
 
   const noteUrl = new URL(`/api/coach/clients/${client.id}/notes`, apiUrl).toString();
   const noteResponse = await fetchWithTimeout(noteUrl, {

@@ -152,12 +152,24 @@ async function waitForMountedApp(page) {
   }
 }
 
+async function gotoRoute(page, route) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      return;
+    } catch (error) {
+      if (attempt === 1 || !String(error?.message || '').includes('ERR_ABORTED')) throw error;
+      await page.waitForTimeout(350);
+    }
+  }
+}
+
 test('critical mobile routes render without raw technical output', async ({ page }, testInfo) => {
   const { consoleErrors, pageErrors } = await prepareApp(page, testInfo.title);
   const routes = ['/', '/log', '/meal-plan', '/profile', '/water', '/weight', '/history', '/gamification', '/coach'];
 
   for (const route of routes) {
-    await page.goto(route);
+    await gotoRoute(page, route);
     await waitForMountedApp(page);
     const bodyText = await page.locator('body').innerText();
     if (bodyText.trim()) {
