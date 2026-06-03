@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
+import { Dumbbell, Eye, EyeOff, Loader2, Sparkles, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,8 @@ export default function AuthScreen() {
     setEmail,
     nickname,
     setNickname,
+    role,
+    setRole,
     password,
     setPassword,
     confirmPassword,
@@ -114,6 +116,27 @@ export default function AuthScreen() {
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Нікнейм англійською</Label>
               <Input value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="SahaFit" className="h-11 rounded-xl" />
+              <div className="mt-3 space-y-2">
+                <Label className="text-xs font-bold">Account role</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole('user')}
+                    className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-sm font-bold transition ${role === 'user' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-muted/40 text-muted-foreground'}`}
+                  >
+                    <UserRound className="h-4 w-4" />
+                    User
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('coach')}
+                    className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-sm font-bold transition ${role === 'coach' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-muted/40 text-muted-foreground'}`}
+                  >
+                    <Dumbbell className="h-4 w-4" />
+                    Coach
+                  </button>
+                </div>
+              </div>
               <p className="text-[10px] text-muted-foreground">Тільки A-Z, a-z, цифри або _, 3-20 символів.</p>
             </div>
             <div className="space-y-1.5">

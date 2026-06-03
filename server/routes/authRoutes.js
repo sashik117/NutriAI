@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import {
+  clearSessionCookie,
   createEmailCode,
-  currentUser,
+  getSessionUser,
   hashPassword,
   isValidNickname,
+  normalizePublicRegistrationRole,
+  safeUser,
+  setSessionCookie,
   verifyPassword,
 } from '../auth/authService.js';
+import { sendVerificationCode } from '../services/emailService.js';
 import { serialize } from '../utils/serialize.js';
 
 function parseRegistrationBody(body = {}) {
@@ -14,6 +19,7 @@ function parseRegistrationBody(body = {}) {
     email: String(body.email || '').trim().toLowerCase(),
     nickname: String(body.nickname || '').trim(),
     password: String(body.password || ''),
+    role: normalizePublicRegistrationRole(body.role),
   };
 }
 
@@ -38,12 +44,12 @@ async function hasExistingUser(email, nickname) {
   return existing.rows.length > 0;
 }
 
-async function createUser({ email, nickname, passwordHash }) {
+async function createUser({ email, nickname, passwordHash, role = 'user' }) {
   const result = await query(
-    `INSERT INTO app_users (email, nickname, name, password_hash)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, email, nickname, name, created_date, updated_date`,
-    [email, nickname, nickname, passwordHash]
+    `INSERT INTO app_users (email, nickname, name, password_hash, role)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, email, nickname, name, role, created_date, updated_date`,
+    [email, nickname, nickname, passwordHash, normalizePublicRegistrationRole(role)]
   );
   return result.rows[0];
 }
@@ -54,7 +60,12 @@ export function createAuthRouter() {
 
   router.get('/me', async (req, res, next) => {
     try {
-      res.json(serialize(await currentUser(req)));
+      const user = await getSessionUser(req);
+      if (!user) {
+        res.status(401).json({ error: 'Authentication required.' });
+        return;
+      }
+      res.json(serialize(user));
     } catch (error) {
       next(error);
     }
@@ -70,6 +81,7 @@ export function createAuthRouter() {
       }
 
       const user = await createUser({ ...input, passwordHash: hashPassword(input.password) });
+      setSessionCookie(res, user);
       res.status(201).json(serialize(user));
     } catch (error) {
       next(error);
@@ -90,13 +102,21 @@ export function createAuthRouter() {
         code,
         nickname: input.nickname,
         passwordHash: hashPassword(input.password),
+        role: input.role,
         expiresAt: Date.now() + 10 * 60 * 1000,
       });
 
-      console.log(`NutriAI verification code for ${input.email}: ${code}`);
+      const delivery = await sendVerificationCode(input.email, code);
+      if (!delivery.sent && process.env.NODE_ENV === 'production') {
+        pendingEmailCodes.delete(input.email);
+        res.status(503).json({ error: 'Email delivery is not configured. Add SMTP settings and try again.' });
+        return;
+      }
+
       res.json({
         ok: true,
-        message: 'Verification code created.',
+        message: delivery.sent ? 'Verification code sent.' : 'Verification code created in dev mode.',
+        delivery: delivery.mode,
         dev_code: process.env.NODE_ENV === 'production' ? undefined : code,
       });
     } catch (error) {
@@ -120,8 +140,20 @@ export function createAuthRouter() {
         return;
       }
 
-      const user = await createUser({ email, nickname: pending.nickname, passwordHash: pending.passwordHash });
+      if (await hasExistingUser(email, pending.nickname)) {
+        pendingEmailCodes.delete(email);
+        res.status(409).json({ error: 'Email or nickname is already registered.' });
+        return;
+      }
+
+      const user = await createUser({
+        email,
+        nickname: pending.nickname,
+        passwordHash: pending.passwordHash,
+        role: pending.role,
+      });
       pendingEmailCodes.delete(email);
+      setSessionCookie(res, user);
       res.status(201).json(serialize(user));
     } catch (error) {
       next(error);
@@ -138,7 +170,7 @@ export function createAuthRouter() {
       }
 
       const result = await query(
-        `SELECT id, email, nickname, name, password_hash, created_date, updated_date
+        `SELECT id, email, nickname, name, role, password_hash, created_date, updated_date
          FROM app_users
          WHERE lower(email) = $1 OR lower(nickname) = $1
          LIMIT 1`,
@@ -150,8 +182,18 @@ export function createAuthRouter() {
         return;
       }
 
-      const { password_hash, ...safeUser } = user;
-      res.json(serialize(safeUser));
+      const userForSession = safeUser(user);
+      setSessionCookie(res, userForSession);
+      res.json(serialize(userForSession));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/logout', async (_req, res, next) => {
+    try {
+      clearSessionCookie(res);
+      res.json({ ok: true });
     } catch (error) {
       next(error);
     }

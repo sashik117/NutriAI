@@ -77,8 +77,8 @@ export function useProfilePage() {
   const saveState = useProfileAutosave({ form, calculated, existing, isLoading, queryClient });
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const logoutProfile = () => {
-    logout();
+  const logoutProfile = async () => {
+    await logout();
     queryClient.clear();
     toast.success(languageApi.text('Ви вийшли з профілю', 'You are logged out'));
   };

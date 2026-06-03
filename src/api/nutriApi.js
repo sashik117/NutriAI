@@ -10,16 +10,14 @@ const nativeDevApiUrl = () => {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || nativeDevApiUrl();
 
 async function request(path, options = {}) {
-  const storedUser = JSON.parse(localStorage.getItem('nutriai_user') || 'null');
+  const { headers, ...fetchOptions } = options;
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...fetchOptions,
+    credentials: 'include',
     headers: {
       ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(storedUser?.email ? { 'X-User-Email': storedUser.email } : {}),
-      ...(storedUser?.nickname ? { 'X-User-Nickname': storedUser.nickname } : {}),
-      ...(storedUser?.name ? { 'X-User-Name': storedUser.name } : {}),
-      ...options.headers,
+      ...headers,
     },
-    ...options,
   });
 
   if (!response.ok) {
@@ -30,7 +28,9 @@ async function request(path, options = {}) {
     } catch {
       // Keep the generic message when the server did not return JSON.
     }
-    throw new Error(message);
+    const requestError = new Error(message);
+    requestError.status = response.status;
+    throw requestError;
   }
 
   if (response.status === 204) return null;
@@ -145,7 +145,7 @@ export const nutriApi = {
     },
 
     logout() {
-      return Promise.resolve();
+      return request('/api/auth/logout', { method: 'POST' });
     },
 
     redirectToLogin() {

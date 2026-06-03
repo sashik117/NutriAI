@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS app_users (
   email text UNIQUE,
   nickname text UNIQUE,
   password_hash text,
+  role text NOT NULL DEFAULT 'user',
   name text NOT NULL DEFAULT 'Local User',
   created_date timestamptz NOT NULL DEFAULT now(),
   updated_date timestamptz NOT NULL DEFAULT now()
@@ -12,6 +13,19 @@ CREATE TABLE IF NOT EXISTS app_users (
 
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS nickname text UNIQUE;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password_hash text;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'user';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'app_users_role_check'
+  ) THEN
+    ALTER TABLE app_users
+      ADD CONSTRAINT app_users_role_check CHECK (role IN ('user', 'coach', 'admin'));
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS user_profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

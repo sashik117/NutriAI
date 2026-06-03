@@ -15,7 +15,11 @@ export async function createApp({ aiService, distDir, nutritionService, uploaded
   const app = express();
   const upload = multer({ dest: uploadsDir });
 
-  app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
+  app.set('trust proxy', 1);
+  app.use(cors({
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim()) : true,
+    credentials: true,
+  }));
   app.use(express.json({ limit: '10mb' }));
   app.use('/uploads', express.static(uploadsDir));
 

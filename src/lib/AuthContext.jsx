@@ -14,7 +14,7 @@ function readStoredUser() {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => readStoredUser());
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(readStoredUser()?.email));
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -25,24 +25,24 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(true);
   };
 
-  const checkUserAuth = async () => {
-    const stored = readStoredUser();
-    if (!stored?.email) {
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
-      setIsAuthenticated(false);
-      return;
-    }
+  const clearUser = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setUser(null);
+    setIsAuthenticated(false);
+  };
 
+  const checkUserAuth = async () => {
     try {
       setIsLoadingAuth(true);
       setAuthError(null);
       const currentUser = await nutriApi.auth.me();
       saveUser(currentUser);
     } catch (error) {
-      console.error('User auth check failed:', error);
-      setAuthError({ type: 'backend_unavailable', message: error.message });
-      setIsAuthenticated(false);
+      clearUser();
+      if (error.status !== 401) {
+        console.error('User auth check failed:', error);
+        setAuthError({ type: 'backend_unavailable', message: error.message });
+      }
     } finally {
       setIsLoadingAuth(false);
       setAuthChecked(true);
@@ -59,8 +59,8 @@ export const AuthProvider = ({ children }) => {
     return savedUser;
   };
 
-  const requestRegistrationCode = async ({ email, nickname, password }) => {
-    return nutriApi.auth.requestCode({ email, nickname, password });
+  const requestRegistrationCode = async ({ email, nickname, password, role }) => {
+    return nutriApi.auth.requestCode({ email, nickname, password, role });
   };
 
   const login = async ({ identifier, password }) => {
@@ -69,10 +69,14 @@ export const AuthProvider = ({ children }) => {
     return savedUser;
   };
 
-  const logout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      await nutriApi.auth.logout();
+    } catch (error) {
+      console.warn('Logout request failed:', error);
+    } finally {
+      clearUser();
+    }
   };
 
   const navigateToLogin = () => {};

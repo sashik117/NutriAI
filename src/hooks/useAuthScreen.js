@@ -16,6 +16,7 @@ export function useAuthScreen() {
   const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
   const [nickname, setNickname] = useState('');
+  const [role, setRole] = useState('user');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [code, setCodeValue] = useState('');
@@ -54,7 +55,7 @@ export function useAuthScreen() {
 
     setLoading(true);
     try {
-      const result = await requestRegistrationCode({ email, nickname, password });
+      const result = await requestRegistrationCode({ email, nickname, password, role });
       setDevCode(result.dev_code || '');
       setStep('code');
       toast.success('Код підтвердження створено');
@@ -91,6 +92,7 @@ export function useAuthScreen() {
     setConfirmPassword('');
     setCodeValue('');
     setDevCode('');
+    setRole('user');
   };
 
   return {
@@ -102,6 +104,8 @@ export function useAuthScreen() {
     setEmail,
     nickname,
     setNickname: setCleanNickname,
+    role,
+    setRole,
     password,
     setPassword,
     confirmPassword,

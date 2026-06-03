@@ -8,6 +8,7 @@ function makeUser(testName) {
     email: `e2e-${safeName}-${stamp}@nutriai.test`.toLowerCase(),
     nickname: `E2E${unique}`.slice(0, 19),
     name: `E2E ${safeName}`,
+    password: 'Test12345!',
   };
 }
 
@@ -104,14 +105,25 @@ async function prepareApp(page, testName) {
   });
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
+  const registerResponse = await page.request.post('/api/auth/register', {
+    data: {
+      email: user.email,
+      nickname: user.nickname,
+      password: user.password,
+      role: 'user',
+    },
+  });
+  expect(registerResponse.ok(), await registerResponse.text()).toBeTruthy();
+  const registeredUser = await registerResponse.json();
+
   await page.addInitScript((storedUser) => {
     window.localStorage.setItem('nutriai_user', JSON.stringify(storedUser));
     window.localStorage.setItem('nutriai_onboarding_done', 'true');
     window.localStorage.setItem('nutriai_language', 'uk');
     window.sessionStorage.setItem('nutriai:splash-seen', '1');
-  }, user);
+  }, registeredUser);
 
-  return { user, consoleErrors, pageErrors };
+  return { user: registeredUser, consoleErrors, pageErrors };
 }
 
 async function expectNoRuntimeErrors(consoleErrors, pageErrors) {
@@ -127,7 +139,8 @@ test('critical mobile routes render without raw technical output', async ({ page
 
   for (const route of routes) {
     await page.goto(route);
-    await expect(page.locator('#root')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('main, form, nav').first()).toBeVisible();
     await expect(page.locator('body')).not.toContainText('undefined');
     await expect(page.locator('body')).not.toContainText('NaN');
     await expect(page.locator('body')).not.toContainText('{"');

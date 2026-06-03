@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import { requireAuth } from '../auth/authService.js';
 
 export function createAiRouter({ aiService, nutritionService }) {
   const router = Router();
+  router.use(requireAuth);
 
   router.post('/invoke', async (req, res, next) => {
     const payload = req.body || {};
