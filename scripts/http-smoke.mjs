@@ -106,11 +106,58 @@ async function checkSessionAuth() {
   const connection = await connectResponse.json();
   assert.equal(connection.coach.email, registeredUser.email);
 
+  const mealPlanResponse = await fetchWithTimeout(new URL('/api/entities/MealPlan', apiUrl).toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: clientCookie },
+    body: JSON.stringify({
+      title: 'Smoke plan',
+      selected_day_index: 0,
+      plan: {
+        days: [
+          {
+            day: 'Smoke day',
+            meals: [
+              {
+                id: 'smoke-meal-1',
+                slot: 'lunch',
+                title: 'Smoke Pasta',
+                calories: 420,
+                proteins: 20,
+                fats: 12,
+                carbs: 55,
+                ingredients: [{ name: 'Pasta', amount: 80, unit: 'g' }],
+              },
+            ],
+          },
+        ],
+        selectedMeals: ['smoke-meal-1'],
+      },
+    }),
+  });
+  assert.ok(mealPlanResponse.ok, `client meal plan returned ${mealPlanResponse.status}`);
+
+  const foodLogResponse = await fetchWithTimeout(new URL('/api/entities/FoodLog', apiUrl).toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: clientCookie },
+    body: JSON.stringify({
+      meal_type: 'lunch',
+      description: 'Smoke Pasta',
+      items: [{ name: 'Smoke Pasta', amount: 250, unit: 'g', calories: 420, proteins: 20, fats: 12, carbs: 55 }],
+      total_calories: 420,
+      total_proteins: 20,
+      total_fats: 12,
+      total_carbs: 55,
+      date: new Date().toISOString().slice(0, 10),
+    }),
+  });
+  assert.ok(foodLogResponse.ok, `client food log returned ${foodLogResponse.status}`);
+
   const clientsUrl = new URL('/api/coach/clients', apiUrl).toString();
   const clientsResponse = await fetchWithTimeout(clientsUrl, { headers: { Cookie: sessionCookie } });
   assert.ok(clientsResponse.ok, `${clientsUrl} returned ${clientsResponse.status}`);
   const clients = await clientsResponse.json();
   assert.equal(clients[0]?.client?.email, client.email);
+  assert.equal(clients[0]?.today?.plan_adherence?.matched_count, 1);
 
   const noteUrl = new URL(`/api/coach/clients/${client.id}/notes`, apiUrl).toString();
   const noteResponse = await fetchWithTimeout(noteUrl, {
@@ -126,6 +173,13 @@ async function checkSessionAuth() {
     headers: { Cookie: clientCookie },
   });
   assert.ok(disconnectResponse.ok, `${disconnectUrl} returned ${disconnectResponse.status}`);
+
+  const revokeResponse = await fetchWithTimeout(new URL(`/api/coach/invites/${invite.id}`, apiUrl).toString(), {
+    method: 'DELETE',
+    headers: { Cookie: sessionCookie },
+  });
+  assert.ok(revokeResponse.ok, `coach invite revoke returned ${revokeResponse.status}`);
+  assert.equal((await revokeResponse.json()).status, 'revoked');
 }
 
 for (const page of pages) {

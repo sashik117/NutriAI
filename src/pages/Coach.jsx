@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Clipboard, Copy, Loader2, NotebookPen, Shield, UsersRound } from 'lucide-react';
+import { ArrowRight, CalendarDays, Clipboard, Copy, Loader2, NotebookPen, Shield, Trash2, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { nutriApi } from '@/api/nutriApi';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,8 @@ function ClientCard({ clientView, selected, onSelect, text }) {
   const nutrition = today.nutrition || {};
   const water = today.water || {};
   const weight = today.weight || {};
-  const adherence = today.adherence;
+  const nutritionAdherence = today.nutrition_adherence || today.adherence;
+  const planAdherence = today.plan_adherence;
 
   return (
     <button
@@ -64,9 +65,12 @@ function ClientCard({ clientView, selected, onSelect, text }) {
         <Metric label={text('Ккал', 'Kcal')} value={nutrition ? `${round(nutrition.total_calories)} ккал` : '—'} muted={!nutrition} />
         <Metric label={text('Вода', 'Water')} value={water ? `${round(water.amount_ml)} мл` : '—'} muted={!water} />
         <Metric label={text('Вага', 'Weight')} value={weight?.weight ? `${round(weight.weight)} кг` : '—'} muted={!weight?.weight} />
-        <Metric label={text('План', 'Plan')} value={adherence ? percent(adherence.ratio) : '—'} muted={!adherence} />
+        <Metric label={text('План', 'Plan')} value={planAdherence ? percent(planAdherence.ratio) : '—'} muted={!planAdherence} />
       </div>
-      {adherence?.label && <p className="mt-2 text-xs font-bold text-muted-foreground">{adherence.label}</p>}
+      <div className="mt-2 space-y-1">
+        {planAdherence?.label && <p className="text-xs font-bold text-muted-foreground">{planAdherence.label}</p>}
+        {nutritionAdherence?.label && <p className="text-[11px] text-muted-foreground">{text('Калорії', 'Calories')}: {nutritionAdherence.label}</p>}
+      </div>
     </button>
   );
 }
@@ -90,10 +94,12 @@ export default function Coach() {
   const { text } = useLanguage();
   const queryClient = useQueryClient();
   const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedDate, setSelectedDate] = useState(() => localIsoDate());
   const [note, setNote] = useState('');
   const [creatingInvite, setCreatingInvite] = useState(false);
+  const [revokingInviteId, setRevokingInviteId] = useState('');
   const [savingNote, setSavingNote] = useState(false);
-  const today = useMemo(() => localIsoDate(), []);
+  const today = useMemo(() => selectedDate || localIsoDate(), [selectedDate]);
   const canCoach = user?.role === 'coach' || user?.role === 'admin';
 
   const { data: invites = [], isLoading: loadingInvites } = useQuery({
@@ -146,8 +152,25 @@ export default function Coach() {
   };
 
   const copyInvite = async (code) => {
-    await navigator.clipboard?.writeText(inviteLink(code));
-    toast.success(text('Посилання скопійовано', 'Invite link copied'));
+    try {
+      await navigator.clipboard?.writeText(inviteLink(code));
+      toast.success(text('Посилання скопійовано', 'Invite link copied'));
+    } catch {
+      toast.info(code);
+    }
+  };
+
+  const revokeInvite = async (inviteId) => {
+    setRevokingInviteId(inviteId);
+    try {
+      await nutriApi.coach.revokeInvite(inviteId);
+      toast.success(text('Код відкликано', 'Invite revoked'));
+      queryClient.invalidateQueries({ queryKey: ['coachInvites'] });
+    } catch (error) {
+      toast.error(error.message || text('Не вдалося відкликати код', 'Could not revoke invite'));
+    } finally {
+      setRevokingInviteId('');
+    }
   };
 
   const addNote = async () => {
@@ -225,11 +248,29 @@ export default function Coach() {
         ) : (
           <div className="space-y-2">
             {invites.slice(0, 3).map((invite) => (
-              <div key={invite.id} className="flex items-center gap-2 rounded-xl bg-muted/35 p-2">
-                <Input readOnly value={invite.code} className="h-10 rounded-xl font-extrabold" />
-                <Button type="button" variant="secondary" size="icon" onClick={() => copyInvite(invite.code)} className="h-10 w-10 rounded-xl">
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div key={invite.id} className="space-y-2 rounded-xl bg-muted/35 p-2">
+                <div className="flex items-center gap-2">
+                  <Input readOnly value={invite.code} className="h-10 rounded-xl font-extrabold" />
+                  <Button type="button" variant="secondary" size="icon" onClick={() => copyInvite(invite.code)} className="h-10 w-10 rounded-xl">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => revokeInvite(invite.id)}
+                    disabled={invite.status !== 'active' || revokingInviteId === invite.id}
+                    className="h-10 w-10 rounded-xl text-destructive disabled:text-muted-foreground"
+                    aria-label={text('Відкликати код', 'Revoke invite')}
+                  >
+                    {revokingInviteId === invite.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 px-1 text-[10px] font-bold uppercase text-muted-foreground">
+                  <span>{invite.status}</span>
+                  <span>{round(invite.used_count)} / {round(invite.max_uses)}</span>
+                  {invite.expires_at && <span>{String(invite.expires_at).slice(0, 10)}</span>}
+                </div>
               </div>
             ))}
           </div>
@@ -244,6 +285,15 @@ export default function Coach() {
           </div>
           {loadingClients && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
         </div>
+        <label className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-sm font-bold">
+          <CalendarDays className="h-4 w-4 text-primary" />
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(event) => setSelectedDate(event.target.value)}
+            className="h-9 border-0 bg-transparent p-0 font-bold shadow-none focus-visible:ring-0"
+          />
+        </label>
 
         {clients.length === 0 && !loadingClients ? (
           <p className="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
@@ -282,6 +332,25 @@ export default function Coach() {
                 <Metric label={text('Жири', 'Fats')} value={`${round(clientDetail.today?.nutrition?.total_fats)} г`} />
                 <Metric label={text('Вуглеводи', 'Carbs')} value={`${round(clientDetail.today?.nutrition?.total_carbs)} г`} />
                 <Metric label={text('Вода', 'Water')} value={`${round(clientDetail.today?.water?.amount_ml)} мл`} />
+              </div>
+
+              <div className="rounded-2xl bg-primary/10 p-3">
+                <p className="text-[10px] font-bold uppercase text-primary">{text('Дотримання плану', 'Plan adherence')}</p>
+                <p className="mt-1 text-lg font-extrabold">
+                  {clientDetail.today?.plan_adherence ? percent(clientDetail.today.plan_adherence.ratio) : '—'}
+                </p>
+                {clientDetail.today?.plan_adherence?.label && (
+                  <p className="mt-1 text-xs text-muted-foreground">{clientDetail.today.plan_adherence.label}</p>
+                )}
+                {clientDetail.today?.plan_adherence?.selected_meals?.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {clientDetail.today.plan_adherence.selected_meals.slice(0, 4).map((meal) => (
+                      <span key={meal.id || meal.title} className="rounded-full bg-background px-2 py-1 text-[10px] font-bold text-muted-foreground">
+                        {meal.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

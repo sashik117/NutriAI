@@ -184,7 +184,7 @@ async function coachNotes(coachId, clientId) {
   return result.rows.map(serialize);
 }
 
-function buildAdherence({ food, profile }) {
+function buildNutritionAdherence({ food, profile }) {
   const goal = Number(profile?.daily_calories || 0);
   const calories = Number(food?.total_calories || 0);
   if (!goal) {
@@ -197,12 +197,105 @@ function buildAdherence({ food, profile }) {
   return { ratio, status: 'over', label: 'Перебір' };
 }
 
+function matchText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function flattenMealPlanMeals(mealPlan) {
+  const payload = mealPlan?.plan || {};
+  const selectedIds = new Set(Array.isArray(payload.selectedMeals) ? payload.selectedMeals : []);
+  const meals = (payload.days || []).flatMap((day, dayIndex) =>
+    (day.meals || []).map((meal) => ({
+      id: meal.id,
+      day: day.day || `Day ${dayIndex + 1}`,
+      slot: meal.slot,
+      title: meal.title || meal.name || 'Meal',
+      calories: Number(meal.calories || 0),
+    }))
+  );
+
+  return selectedIds.size ? meals.filter((meal) => selectedIds.has(meal.id)) : [];
+}
+
+function foodLogHaystack(foodLogs = []) {
+  return matchText(
+    foodLogs
+      .flatMap((log) => [
+        log.description,
+        ...(Array.isArray(log.items) ? log.items.map((item) => item.name || item.title || item.description) : []),
+      ])
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+function mealMatchesFoodLog(meal, haystack) {
+  const title = matchText(meal.title);
+  if (!title || !haystack) return false;
+  if (haystack.includes(title)) return true;
+
+  const importantWords = title
+    .split(' ')
+    .filter((word) => word.length >= 4)
+    .slice(0, 4);
+  if (importantWords.length === 0) return false;
+  return importantWords.filter((word) => haystack.includes(word)).length >= Math.min(2, importantWords.length);
+}
+
+function buildPlanAdherence({ mealPlan, foodLogs }) {
+  if (!mealPlan?.plan?.days?.length) {
+    return { ratio: 0, status: 'no_plan', label: 'Плану ще немає', selected_count: 0, matched_count: 0, selected_meals: [], matched_meals: [] };
+  }
+
+  const selectedMeals = flattenMealPlanMeals(mealPlan);
+  if (!selectedMeals.length) {
+    return { ratio: 0, status: 'no_selection', label: 'Страви не обрані', selected_count: 0, matched_count: 0, selected_meals: [], matched_meals: [] };
+  }
+
+  const haystack = foodLogHaystack(foodLogs);
+  const matchedMeals = selectedMeals.filter((meal) => mealMatchesFoodLog(meal, haystack));
+  const ratio = matchedMeals.length / selectedMeals.length;
+  let status = 'low';
+  let label = 'План майже не виконано';
+  if (!haystack) {
+    status = 'no_logs';
+    label = 'Ще немає записів їжі';
+  } else if (ratio >= 0.8) {
+    status = 'good';
+    label = 'План виконується';
+  } else if (ratio >= 0.4) {
+    status = 'partial';
+    label = 'Частково за планом';
+  }
+
+  return {
+    ratio,
+    status,
+    label,
+    selected_count: selectedMeals.length,
+    matched_count: matchedMeals.length,
+    selected_meals: selectedMeals.slice(0, 8),
+    matched_meals: matchedMeals.slice(0, 8),
+  };
+}
+
 async function buildClientView({ coachId, relationship, client, date, detail = false }) {
   const permissions = normalizePermissions(relationship.permissions);
   const profile = await latestProfile(client.id);
   const food = permissions.nutrition ? await todayFoodSummary(client.id, date) : null;
+  const mealPlan = permissions.plan ? await latestMealPlan(client.id) : null;
+  const needsFoodLogs = permissions.nutrition && (detail || permissions.plan);
+  const foodLogs = needsFoodLogs ? await todayFoodLogs(client.id, date) : [];
   const water = permissions.water ? await todayWaterSummary(client.id, date) : null;
   const weight = permissions.weight ? await latestWeight(client.id) : null;
+  const nutritionAdherence = permissions.nutrition ? buildNutritionAdherence({ food, profile }) : null;
+  const planAdherence = permissions.plan && permissions.nutrition
+    ? buildPlanAdherence({ mealPlan, foodLogs })
+    : null;
 
   const view = {
     relationship: serialize({
@@ -219,14 +312,16 @@ async function buildClientView({ coachId, relationship, client, date, detail = f
       nutrition: food,
       water,
       weight,
-      adherence: permissions.nutrition ? buildAdherence({ food, profile }) : null,
+      adherence: nutritionAdherence,
+      nutrition_adherence: nutritionAdherence,
+      plan_adherence: planAdherence,
     },
   };
 
   if (detail) {
-    view.food_logs = permissions.nutrition ? await todayFoodLogs(client.id, date) : [];
+    view.food_logs = permissions.nutrition ? foodLogs : [];
     view.weight_logs = permissions.weight ? await recentWeightLogs(client.id) : [];
-    view.meal_plan = permissions.plan ? await latestMealPlan(client.id) : null;
+    view.meal_plan = mealPlan;
     view.history = permissions.history
       ? {
           food: permissions.nutrition ? await recentFoodHistory(client.id) : [],
