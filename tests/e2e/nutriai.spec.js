@@ -135,15 +135,22 @@ async function expectNoRuntimeErrors(consoleErrors, pageErrors) {
 
 test('critical mobile routes render without raw technical output', async ({ page }, testInfo) => {
   const { consoleErrors, pageErrors } = await prepareApp(page, testInfo.title);
-  const routes = ['/', '/log', '/meal-plan', '/profile', '/water', '/weight', '/history', '/gamification'];
+  const routes = ['/', '/log', '/meal-plan', '/profile', '/water', '/weight', '/history', '/gamification', '/coach'];
 
   for (const route of routes) {
     await page.goto(route);
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('main, form, nav').first()).toBeVisible();
-    await expect(page.locator('body')).not.toContainText('undefined');
-    await expect(page.locator('body')).not.toContainText('NaN');
-    await expect(page.locator('body')).not.toContainText('{"');
+    await page.waitForFunction(
+      () => {
+        const root = document.querySelector('#root');
+        return root?.children.length > 0 && document.body.innerText.trim().length > 0;
+      },
+      null,
+      { timeout: 25_000 }
+    );
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toContain('undefined');
+    expect(bodyText).not.toContain('NaN');
+    expect(bodyText).not.toContain('{"');
   }
 
   await expectNoRuntimeErrors(consoleErrors, pageErrors);

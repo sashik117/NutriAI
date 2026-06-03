@@ -13,6 +13,8 @@ const numericKeys = new Set([
   'total_fats',
   'total_carbs',
   'amount_ml',
+  'max_uses',
+  'used_count',
   'waist',
   'hips',
   'chest',

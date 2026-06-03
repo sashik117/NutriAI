@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createAiRouter } from './routes/aiRoutes.js';
 import { createAuthRouter } from './routes/authRoutes.js';
+import { createCoachRouter } from './routes/coachRoutes.js';
 import { createEntityRouter } from './routes/entityRoutes.js';
 import { createFileRouter } from './routes/fileRoutes.js';
 import { createHealthRouter } from './routes/healthRoutes.js';
@@ -25,6 +26,7 @@ export async function createApp({ aiService, distDir, nutritionService, uploaded
 
   app.use('/api/health', createHealthRouter());
   app.use('/api/auth', createAuthRouter());
+  app.use('/api/coach', createCoachRouter());
   app.use('/api/entities', createEntityRouter());
   app.use('/api/files', createFileRouter({ upload, uploadedFiles }));
   app.use('/api/ai', createAiRouter({ aiService, nutritionService }));

@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Loader2, LogOut } from 'lucide-react';
 import ActivityHeatmap from '../components/dashboard/ActivityHeatmap';
+import CoachConnectionCard from '@/components/profile/CoachConnectionCard';
 import ProfileDailyGoalCard from '@/components/profile/ProfileDailyGoalCard';
 import ProfileFormCard from '@/components/profile/ProfileFormCard';
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -46,6 +47,7 @@ export default function Profile() {
         weight={weight}
       />
       <ProfileDailyGoalCard calculated={calculated} text={text} />
+      <CoachConnectionCard text={text} isEnglish={isEnglish} />
 
       <ActivityHeatmap foodLogs={allFoodLogs} caloriesGoal={calculated.calories} />
 

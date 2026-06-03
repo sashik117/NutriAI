@@ -19,6 +19,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const WeightTracker = lazy(() => import('./pages/WeightTracker'));
 const Gamification = lazy(() => import('./pages/Gamification'));
 const MealPlan = lazy(() => import('./pages/MealPlan'));
+const Coach = lazy(() => import('./pages/Coach'));
 const PageNotFound = lazy(() => import('./lib/PageNotFound'));
 
 function RouteFallback() {
@@ -66,6 +67,7 @@ const AuthenticatedApp = () => {
             <Route path="/weight" element={<WeightTracker />} />
             <Route path="/gamification" element={<Gamification />} />
             <Route path="/meal-plan" element={<MealPlan />} />
+            <Route path="/coach" element={<Coach />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
           <Route path="*" element={<PageNotFound />} />

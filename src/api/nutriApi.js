@@ -111,6 +111,77 @@ export const nutriApi = {
     },
   },
 
+  coach: {
+    profile() {
+      return request('/api/coach/profile');
+    },
+
+    saveProfile(data) {
+      return request('/api/coach/profile', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    invites() {
+      return request('/api/coach/invites');
+    },
+
+    createInvite(data = {}) {
+      return request('/api/coach/invites', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    revokeInvite(inviteId) {
+      return request(`/api/coach/invites/${inviteId}`, { method: 'DELETE' });
+    },
+
+    connect(code) {
+      return request('/api/coach/connect', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      });
+    },
+
+    myCoaches() {
+      return request('/api/coach/my-coaches');
+    },
+
+    updateMyCoachPermissions(relationshipId, permissions) {
+      return request(`/api/coach/my-coaches/${relationshipId}/permissions`, {
+        method: 'PATCH',
+        body: JSON.stringify({ permissions }),
+      });
+    },
+
+    disconnectMyCoach(relationshipId) {
+      return request(`/api/coach/my-coaches/${relationshipId}`, { method: 'DELETE' });
+    },
+
+    clients(date) {
+      const params = date ? `?date=${encodeURIComponent(date)}` : '';
+      return request(`/api/coach/clients${params}`);
+    },
+
+    client(clientId, date) {
+      const params = date ? `?date=${encodeURIComponent(date)}` : '';
+      return request(`/api/coach/clients/${clientId}${params}`);
+    },
+
+    addNote(clientId, note) {
+      return request(`/api/coach/clients/${clientId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ note }),
+      });
+    },
+
+    deleteNote(noteId) {
+      return request(`/api/coach/notes/${noteId}`, { method: 'DELETE' });
+    },
+  },
+
   auth: {
     me() {
       return request('/api/auth/me');

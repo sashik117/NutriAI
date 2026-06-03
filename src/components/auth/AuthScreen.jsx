@@ -125,7 +125,7 @@ export default function AuthScreen() {
                     className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-sm font-bold transition ${role === 'user' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-muted/40 text-muted-foreground'}`}
                   >
                     <UserRound className="h-4 w-4" />
-                    User
+                    Я клієнт
                   </button>
                   <button
                     type="button"
@@ -133,7 +133,7 @@ export default function AuthScreen() {
                     className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-sm font-bold transition ${role === 'coach' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-muted/40 text-muted-foreground'}`}
                   >
                     <Dumbbell className="h-4 w-4" />
-                    Coach
+                    Я тренер
                   </button>
                 </div>
               </div>

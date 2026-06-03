@@ -70,6 +70,62 @@ async function checkSessionAuth() {
   const me = await meResponse.json();
   assert.equal(me.email, registeredUser.email);
   assert.equal(me.role, 'coach');
+
+  const inviteUrl = new URL('/api/coach/invites', apiUrl).toString();
+  const inviteResponse = await fetchWithTimeout(inviteUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: sessionCookie },
+    body: JSON.stringify({ expires_days: 7, max_uses: 5 }),
+  });
+  assert.ok(inviteResponse.ok, `${inviteUrl} returned ${inviteResponse.status}`);
+  const invite = await inviteResponse.json();
+  assert.match(invite.code, /^NAI-[A-F0-9]{8}$/);
+
+  const clientStamp = `${stamp}c`;
+  const clientResponse = await fetchWithTimeout(registerUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: `client-${clientStamp}@nutriai.test`,
+      nickname: `Client${clientStamp}`.replace(/[^A-Za-z0-9_]/g, '').slice(0, 19),
+      password: 'Test12345!',
+      role: 'user',
+    }),
+  });
+  assert.ok(clientResponse.ok, `${registerUrl} client returned ${clientResponse.status}`);
+  const clientCookie = clientResponse.headers.get('set-cookie')?.split(';')[0];
+  const client = await clientResponse.json();
+
+  const connectUrl = new URL('/api/coach/connect', apiUrl).toString();
+  const connectResponse = await fetchWithTimeout(connectUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: clientCookie },
+    body: JSON.stringify({ code: invite.code }),
+  });
+  assert.ok(connectResponse.ok, `${connectUrl} returned ${connectResponse.status}`);
+  const connection = await connectResponse.json();
+  assert.equal(connection.coach.email, registeredUser.email);
+
+  const clientsUrl = new URL('/api/coach/clients', apiUrl).toString();
+  const clientsResponse = await fetchWithTimeout(clientsUrl, { headers: { Cookie: sessionCookie } });
+  assert.ok(clientsResponse.ok, `${clientsUrl} returned ${clientsResponse.status}`);
+  const clients = await clientsResponse.json();
+  assert.equal(clients[0]?.client?.email, client.email);
+
+  const noteUrl = new URL(`/api/coach/clients/${client.id}/notes`, apiUrl).toString();
+  const noteResponse = await fetchWithTimeout(noteUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: sessionCookie },
+    body: JSON.stringify({ note: 'Smoke note' }),
+  });
+  assert.ok(noteResponse.ok, `${noteUrl} returned ${noteResponse.status}`);
+
+  const disconnectUrl = new URL(`/api/coach/my-coaches/${connection.relationship.id}`, apiUrl).toString();
+  const disconnectResponse = await fetchWithTimeout(disconnectUrl, {
+    method: 'DELETE',
+    headers: { Cookie: clientCookie },
+  });
+  assert.ok(disconnectResponse.ok, `${disconnectUrl} returned ${disconnectResponse.status}`);
 }
 
 for (const page of pages) {
@@ -79,4 +135,4 @@ for (const page of pages) {
 await checkApiHealth();
 await checkSessionAuth();
 
-console.log(`http smoke ok: ${pages.length} pages + api health + session auth`);
+console.log(`http smoke ok: ${pages.length} pages + api health + session auth + coach flow`);

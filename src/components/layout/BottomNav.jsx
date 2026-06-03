@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, MessageSquarePlus, Droplets, Trophy, User } from 'lucide-react';
+import { Home, MessageSquarePlus, Droplets, Trophy, User, UsersRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { haptic } from '@/lib/haptic';
 import { useLanguage } from '@/lib/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Головна' },
@@ -15,6 +16,10 @@ const navItems = [
 export default function BottomNav() {
   const location = useLocation();
   const { isEnglish } = useLanguage();
+  const { user } = useAuth();
+  const visibleNavItems = user?.role === 'coach' || user?.role === 'admin'
+    ? [...navItems.slice(0, 4), { path: '/coach', icon: UsersRound, label: 'Тренер' }, navItems[4]]
+    : navItems;
 
   return (
     <nav
@@ -22,7 +27,7 @@ export default function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="max-w-lg mx-auto flex items-center justify-around py-1.5 px-2">
-        {navItems.map(({ path, icon: Icon, label }) => {
+        {visibleNavItems.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path;
           const englishLabels = {
             'Головна': 'Home',
@@ -31,7 +36,7 @@ export default function BottomNav() {
             'Нагороди': 'Rewards',
             'Профіль': 'Profile',
           };
-          const visibleLabel = isEnglish ? englishLabels[label] : label;
+          const visibleLabel = label === 'Тренер' ? (isEnglish ? 'Coach' : 'Тренер') : isEnglish ? englishLabels[label] : label;
           return (
             <Link
               key={path}
